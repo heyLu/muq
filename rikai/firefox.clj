@@ -22,7 +22,8 @@
   (let [title (if (and (seq? title) (> (count title) 0))
                 (.substring 1 title (dec (count title))))
         last-visited (firefox-date last-visited)]
-    (conj {:url url}
+    (conj {:id (parse-int id)
+           :url url}
           (if title {:title title})
           (if last-visited {:last-visited last-visited}))))
 
