@@ -116,7 +116,7 @@
 (defn visit-chain [n]
   (let [names (map #(symbol (str "?v" %)) (range n))]
     (apply conj
-      [(cons 'visit-chain names)]
+      [(list 'visit-chain (last names) (first names))]
       (map (fn [[v1 v2]]
              [v1 :from v2])
            (partition 2 1 names)))))
@@ -124,7 +124,7 @@
 (d/q '[:find ?url
        :in $ %
        :where (url-of ?start "http://news.papill0n.org/")
-              (visit-chain ?start _ _ _ ?end)
+              (visit-chain ?start ?end)
               (url-of ?end ?url)]
      (db)
      [visit->url (visit-chain 5)])
