@@ -92,19 +92,17 @@
   (concat (map hist-entry->datom firefox-history)
           (map visit->datom firefox-visits)))
 
+(d/q '[:find ?url
+       :where [_ :url ?url]
+              [(.contains ?url "fogus.me")]]
+     (db))
+
 (def visit->url
   '[(url-of ?visit ?url)
     [?visit :url-ref ?url-ref]
     [?url-ref :url ?url]])
 
-(defn visit-chain [n]
-  (let [names (map #(symbol (str "?v" %)) (range n))]
-    (apply conj
-      [(cons 'visit-chain (reverse names))]
-      (map (fn [[v1 v2]]
-             [v1 :from v2])
-           (partition 2 1 names)))))
-
+; find urls that i visited starting from waxy.org
 (d/q '[:find ?from_waxy ?date
        :in $ %
        :where [?v1 :from ?v2]
@@ -115,10 +113,13 @@
      (db)
      [visit->url])
 
-(d/q '[:find ?url
-       :where [_ :url ?url]
-              [(.contains ?url "fogus.me")]]
-     (db))
+(defn visit-chain [n]
+  (let [names (map #(symbol (str "?v" %)) (range n))]
+    (apply conj
+      [(cons 'visit-chain names)]
+      (map (fn [[v1 v2]]
+             [v1 :from v2])
+           (partition 2 1 names)))))
 
 (d/q '[:find ?url
        :in $ %
