@@ -1,7 +1,7 @@
 ff-to-csv: ff-history.csv ff-visits.csv
 
 ff-history.csv: ff-history.sqlite3
-	sqlite3 -csv ff-history.sqlite3 'select url, title, last_visited_date from moz_places'
+	sqlite3 -csv ff-history.sqlite3 'select id, url, title, last_visit_date from moz_places' > ff-history.csv
 
 ff-visits.csv: ff-history.sqlite3
-	sqlite3 -csv ff-history.sqlite3 'select * from moz_historyvisits'
+	sqlite3 -csv ff-history.sqlite3 'select id, from_visit, place_id, visit_date, visit_type from moz_historyvisits' > ff-visits.csv
