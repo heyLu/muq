@@ -91,3 +91,39 @@
 (d/transact conn
   (concat (map hist-entry->datom firefox-history)
           (map visit->datom firefox-visits)))
+
+(def visit->url
+  '[(url-of ?visit ?url)
+    [?visit :url-ref ?url-ref]
+    [?url-ref :url ?url]])
+
+(defn visit-chain [n]
+  (let [names (map #(symbol (str "?v" %)) (range n))]
+    (apply conj
+      [(cons 'visit-chain (reverse names))]
+      (map (fn [[v1 v2]]
+             [v1 :from v2])
+           (partition 2 1 names)))))
+
+(d/q '[:find ?from_waxy ?date
+       :in $ %
+       :where [?v1 :from ?v2]
+              (url-of ?v2 ?url)
+              [(.contains ?url "waxy.org")]
+              (url-of ?v1 ?from_waxy)
+              [?v1 :date ?date]]
+     (db)
+     [visit->url])
+
+(d/q '[:find ?url
+       :where [_ :url ?url]
+              [(.contains ?url "fogus.me")]]
+     (db))
+
+(d/q '[:find ?url
+       :in $ %
+       :where (url-of ?start "http://news.papill0n.org/")
+              (visit-chain ?start _ _ _ ?end)
+              (url-of ?end ?url)]
+     (db)
+     [visit->url (visit-chain 5)])
