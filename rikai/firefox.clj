@@ -1,5 +1,7 @@
 (ns rikai.firefox
-  (:require [clojure.string :as string])
+  (:require [clojure.string :as string]
+            [datomic.api :as d]
+            [rikai :as r])
   (:import [java.util Date]))
 
 (defn parse-int [n]
@@ -59,4 +61,33 @@
     (read-csv "ff-visits.csv")
     (map ->visit)))
 
-(count firefox-visits)
+(count (filter :from firefox-visits))
+
+(defn connect-to [db-url]
+  (d/create-database db-url)
+  (d/connect db-url))
+
+(def conn (connect-to "datomic:mem://history"))
+(defn db [] (d/db conn))
+
+(d/transact conn
+  [(r/def-attr -1 :url :db.type/string :db.cardinality/one)
+   (r/def-attr -2 :title :db.type/string :db.cardinality/one)
+   (r/def-attr -3 :date :db.type/instant :db.cardinality/one)
+   (r/def-attr -4 :from :db.type/ref :db.cardinality/one)
+   (r/def-attr -5 :url-ref :db.type/ref :db.cardinality/one)
+   (r/def-attr -6 :type :db.type/keyword :db.cardinality/one)])
+
+(defn hist-entry->datom [{:keys [id] :as entry}]
+  (assoc (dissoc entry :id :last-visited)
+    :db/id (d/tempid :db.part/user (- id))))
+
+(defn visit->datom [{:keys [id url-ref from] :as visit}]
+  (conj (dissoc visit :id)
+        {:db/id (d/tempid :db.part/user (- -50000 id))
+         :url-ref (d/tempid :db.part/user (- url-ref))}
+        (if from {:from (d/tempid :db.part/user (- -50000 from))})))
+
+(d/transact conn
+  (concat (map hist-entry->datom firefox-history)
+          (map visit->datom firefox-visits)))
