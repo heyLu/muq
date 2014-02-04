@@ -45,13 +45,14 @@
     3 :bookmark
     7 :download))
 
-(defn ->visit [[id from_visit hist_id date type]]
-  (let [from (parse-int from_visit)]
+(defn ->visit [[id from-visit from-valid? hist-id date type]]
+  (let [from (parse-int from-visit)
+        from-valid? (= 1 (parse-int from-valid?))]
     (conj {:id (parse-int id)
-           :hist_id (parse-int hist_id)
+           :url-ref (parse-int hist-id)
            :date (firefox-date date)
            :type (visit-type (parse-int type))}
-          (if (not= 0 from) {:from from}))))
+          (if from-valid? {:from from}))))
 
 (def firefox-visits
   (->>
