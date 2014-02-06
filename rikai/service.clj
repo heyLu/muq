@@ -106,7 +106,9 @@
     (let [db (d/db conn)]
       (query->html db (d/q [:find '?e :where ['?e key '_]] db))))
   (GET "/entity-with-ref/:ref/:key" {{:keys [ref key value]} :params}
-    (let [db (d/db conn)]
+    (let [db (d/db conn)
+          attr-type (:db/valueType (d/entity db key))
+          value (du/string->datomic-value value attr-type)]
       (query->html db (d/q [:find '?e
                             :where ['?e ref '?r]
                                    ['?r key value]] db))))

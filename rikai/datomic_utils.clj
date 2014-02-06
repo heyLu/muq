@@ -37,7 +37,7 @@
     ;:db.type/float
     ;:db.type/double
     ;:db.type/bigdec
-    ;:db.type/ref
+    :db.type/ref (u/parse-long s)
     :db.type/instant (edn/read-string (str "#inst " \" s \"))
     ;:db.type/uuid
     :db.type/uri (URI. s)
