@@ -3,4 +3,4 @@
 .nrepl-port
 
 *.csv
-ff-history.sqlite*
+*.sqlite*
