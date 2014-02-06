@@ -52,7 +52,7 @@
   (d/create-database db-url)
   (d/connect db-url))
 
-(def conn (connect-to "datomic:mem://history"))
+(def conn (connect-to "datomic:free://localhost:4334/rikai"))
 (defn db [] (d/db conn))
 
 (d/transact conn

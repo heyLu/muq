@@ -5,10 +5,12 @@
   (:import [java.util Date]
            [java.net URI]))
 
+(def db-url "datomic:free://localhost:4334/rikai")
+
 (def conn
   (do
-    (d/create-database "datomic:mem://rikai")
-    (d/connect "datomic:mem://rikai")))
+    (d/create-database db-url)
+    (d/connect db-url)))
 
 (defn db []
   (d/db conn))
