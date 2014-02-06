@@ -55,6 +55,17 @@
                  [:span.value (attr->html type v)])]))
           entity)])
 
+(defn query->html [db query-result]
+  (html [:html
+         [:head [:style ".entity { margin-left: 1em; }"]]
+         [:body
+          [:div
+           (map (fn [[eid]]
+                  [:div
+                   [:a {:href (str "/entity/" eid ".html")} eid]
+                   (entity->html db (d/entity db eid))])
+                query-result)]]]))
+
 (let [db (d/db conn)]
   #_(entity->html db (d/entity db (find-by-str db :url "http://news.papill0n.org")))
   (d/q [:find '?e
@@ -81,25 +92,12 @@
         (http-response 404 "Missing parameter: value."))))
   (GET "/entity-with/:key" [key]
     (let [db (d/db conn)]
-      (html [:html
-             [:head [:style ".entity { margin-left: 1em; }"]]
-             [:body
-              [:div
-               (map (fn [[eid]]
-                      [:div
-                       [:a {:href (str "/entity/" eid ".html")} eid]
-                       (entity->html db (d/entity db eid))])
-                    (d/q [:find '?e :where ['?e key '_]] db))]]])))
+      (query->html db (d/q [:find '?e :where ['?e key '_]] db))))
   (GET "/entity-with-ref/:ref/:key" {{:keys [ref key value]} :params}
     (let [db (d/db conn)]
-      (html [:div
-             (map (fn [[eid]]
-                    [:div
-                     [:a {:href (str "/entity/" eid ".html")} eid]
-                     (entity->html db (d/entity db eid))])
-                  (d/q [:find '?e
-                        :where ['?e ref '?r]
-                               ['?r key value]] db))])))
+      (query->html db (d/q [:find '?e
+                            :where ['?e ref '?r]
+                                   ['?r key value]] db))))
   (GET "/entity-matching/:key" {{:keys [key value]} :params}
     )
   (POST "/entity" {body :body}
