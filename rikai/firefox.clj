@@ -1,19 +1,29 @@
 (ns rikai.firefox
   (:require [datomic.api :as d]
             [rikai.util :as u]
-            [rikai :as r])
-  (:import [java.util Date]))
+            [rikai.datomic-utils :as du])
+  (:import [java.util Date]
+           [java.net URI URL]))
 
 (defn firefox-date [s]
   (if-let [n (u/parse-long s)]
     (Date. (long (/ n 1000)))))
+
+(defn firefox-url [url]
+  (let [url (if (.startsWith url "\"") (.substring url 1) url)
+        url (if (.endsWith url "\"") (.substring url 0 (- (count url) 2)) url)]
+    (try
+      (URI. url)
+      (catch Exception e
+        (let [url (URL. url)]
+          (URI. (.getProtocol url) (.getHost url) (.getPath url) (.getRef url)))))))
 
 (defn ->hist-entry [[id url title last-visited]]
   (let [title (if (and (seq? title) (> (count title) 0))
                 (.substring 1 title (dec (count title))))
         last-visited (firefox-date last-visited)]
     (conj {:id (u/parse-int id)
-           :url url}
+           :url (firefox-url url)}
           (if title {:title title})
           (if last-visited {:last-visited last-visited}))))
 
@@ -37,7 +47,7 @@
         from-valid? (= 1 (u/parse-int from-valid?))]
     (conj {:id (u/parse-int id)
            :url-ref (u/parse-int hist-id)
-           :date (firefox-date date)
+           :time (firefox-date date)
            :type (visit-type (u/parse-int type))}
           (if from-valid? {:from from}))))
 
@@ -56,12 +66,10 @@
 (defn db [] (d/db conn))
 
 (d/transact conn
-  [(r/def-attr -1 :url :db.type/string :db.cardinality/one)
-   (r/def-attr -2 :title :db.type/string :db.cardinality/one)
-   (r/def-attr -3 :date :db.type/instant :db.cardinality/one)
-   (r/def-attr -4 :from :db.type/ref :db.cardinality/one)
-   (r/def-attr -5 :url-ref :db.type/ref :db.cardinality/one)
-   (r/def-attr -6 :type :db.type/keyword :db.cardinality/one)])
+  [(du/attr-def -1 :url :db.type/uri :db.cardinality/one {:referenced-by (d/tempid :db.part/db -5)})
+   (du/attr-def -4 :from :db.type/ref :db.cardinality/one {:referenced-by (d/tempid :db.part/db -5)})
+   (du/attr-def -5 :url-ref :db.type/ref :db.cardinality/one)
+   (du/attr-def -6 :type :db.type/keyword :db.cardinality/one)])
 
 (defn hist-entry->datom [{:keys [id] :as entry}]
   (assoc (dissoc entry :id :last-visited)
