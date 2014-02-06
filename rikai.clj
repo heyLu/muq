@@ -1,7 +1,8 @@
 (ns rikai
   "a place for facts to live"
   (:require [clojure.walk :as walk]
-            [datomic.api :as d])
+            [datomic.api :as d]
+            [rikai.attributes :as attr])
   (:import [java.util Date]
            [java.net URI]))
 
@@ -15,13 +16,7 @@
 (defn db []
   (d/db conn))
 
-(d/transact conn
-  [{:db/id (d/tempid :db.part/db -1)
-    :db/ident :url
-    :db/valueType :db.type/uri
-    :db/cardinality :db.cardinality/one
-    :db/unique :db.unique/identity
-    :db.install/_attribute :db.part/db}])
+(d/transact conn attr/default)
 
 (d/transact conn
   [{:db/id (d/tempid :db.part/user -1)
@@ -30,19 +25,6 @@
 (d/q '[:find ?url
        :where [?e :url ?url]]
      (db))
-
-(d/transact conn
-  [{:db/id (d/tempid :db.part/db -1)
-    :db/ident :tags
-    :db/valueType :db.type/ref
-    :db/cardinality :db.cardinality/many
-    :db.install/_attribute :db.part/db}
-   {:db/id (d/tempid :db.part/db -2)
-    :db/ident :name
-    :db/valueType :db.type/string
-    :db/cardinality :db.cardinality/one
-    :db/unique :db.unique/identity
-    :db.install/_attribute :db.part/db}])
 
 (def arashi-url
   (first (d/q '[:find ?e ?url
@@ -72,11 +54,6 @@
           :db/cardinality cardinality
           :db.install/_attribute :db.part/db}
          more-attrs))
-
-(d/transact conn
-  [(def-attr -1 :title :db.type/string :db.cardinality/one {:db/index true})
-   (def-attr -2 :note :db.type/string :db.cardinality/many)
-   (def-attr -3 :time :db.type/instant :db.cardinality/one)])
 
 (defn log [content & [time]]
   {:note content
