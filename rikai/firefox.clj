@@ -1,40 +1,25 @@
 (ns rikai.firefox
-  (:require [clojure.string :as string]
-            [datomic.api :as d]
+  (:require [datomic.api :as d]
+            [rikai.util :as u]
             [rikai :as r])
   (:import [java.util Date]))
 
-(defn parse-int [n]
-  (try
-    (Integer/parseInt n)
-    (catch NumberFormatException ne
-      nil)))
-
-(defn parse-long [n]
-  (try
-    (Long/parseLong n)
-    (catch NumberFormatException ne
-      nil)))
-
 (defn firefox-date [s]
-  (if-let [n (parse-long s)]
+  (if-let [n (u/parse-long s)]
     (Date. (long (/ n 1000)))))
 
 (defn ->hist-entry [[id url title last-visited]]
   (let [title (if (and (seq? title) (> (count title) 0))
                 (.substring 1 title (dec (count title))))
         last-visited (firefox-date last-visited)]
-    (conj {:id (parse-int id)
+    (conj {:id (u/parse-int id)
            :url url}
           (if title {:title title})
           (if last-visited {:last-visited last-visited}))))
 
-(defn read-csv [file]
-  (->> (slurp file) string/split-lines (map #(string/split % #","))))
-
 (def firefox-history
   (->>
-    (read-csv "ff-history.csv")
+    (u/read-csv "ff-history.csv")
     (map ->hist-entry)))
 
 ;(identity (filter #(.contains (:url %) "oops") firefox-history))
@@ -48,17 +33,17 @@
     7 :download))
 
 (defn ->visit [[id from-visit from-valid? hist-id date type]]
-  (let [from (parse-int from-visit)
-        from-valid? (= 1 (parse-int from-valid?))]
-    (conj {:id (parse-int id)
-           :url-ref (parse-int hist-id)
+  (let [from (u/parse-int from-visit)
+        from-valid? (= 1 (u/parse-int from-valid?))]
+    (conj {:id (u/parse-int id)
+           :url-ref (u/parse-int hist-id)
            :date (firefox-date date)
-           :type (visit-type (parse-int type))}
+           :type (visit-type (u/parse-int type))}
           (if from-valid? {:from from}))))
 
 (def firefox-visits
   (->>
-    (read-csv "ff-visits.csv")
+    (u/read-csv "ff-visits.csv")
     (map ->visit)))
 
 (count (filter :from firefox-visits))
