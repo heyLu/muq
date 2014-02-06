@@ -16,7 +16,7 @@
 (defn db []
   (d/db conn))
 
-(d/transact conn attr/default)
+(attr/init conn)
 
 (d/transact conn
   [{:db/id (d/tempid :db.part/user -1)

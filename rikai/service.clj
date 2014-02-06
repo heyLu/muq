@@ -9,7 +9,8 @@
         [ring.middleware.keyword-params :only (wrap-keyword-params)]
         [compojure.core :only (GET POST PUT)]
         [hiccup.core :only (html)]
-        [rikai.datomic-utils :only (find-by-str with-db)]))
+        [rikai.datomic-utils :only (find-by-str with-db)])
+  (:import [datomic.query EntityMap]))
 
 (defonce conn
   (d/connect "datomic:free://localhost:4334/rikai"))
@@ -45,18 +46,25 @@
          [:li (link-to (d/entity db eid))])
        query-result))
 
-(defn entity->html-summary [db entity]
+(defn entity-with-refs->html [db entity]
   [:div.entity
-   (link-to entity)
-     (map (fn [[k v]]
-            (let [{type :db/valueType} (d/entity db k)]
-              [:div
-               [:span.attr (pr-str k)]
-               " "
-               (if (coll? v)
-                 (interpose " " (map #(attr->html type %) v))
-                 [:span.value (attr->html type v)])]))
-          entity)])
+   (entity->html db entity)
+   [:div
+    [:h3 "references"]
+    (map (fn [[k v]]
+           (if-let [ref-attrs (:referenced-by (d/entity db k))]
+             (let [v (if (instance? EntityMap v)
+                       (:db/id v)
+                       v)
+                   ref-vals (d/q [:find '?e
+                                  :where ['?e (first ref-attrs) '?r]
+                                         ['?r k v]] db)]
+               (if (seq ref-vals)
+                 [:div
+                  [:h4 [:a {:href (str "/entity-with-ref/" (first ref-attrs) "/" k "?value=" v)} v]]
+                  [:ul
+                   (query->html-links db ref-vals)]]))))
+         entity)]])
 
 (defn query->html [db query-result]
   (html [:html
@@ -84,7 +92,7 @@
   (GET ["/entity/:id.html", :id #"[0-9]+"] [id]
     (let [db (d/db conn)]
       (if-let [entity (d/entity db (u/parse-long id))]
-        (http-response 200 (html (entity->html db entity)))
+        (http-response 200 (html (entity-with-refs->html db entity)))
         (http-response 404 "No such entity."))))
   (GET "/entity-by/:key" {{:keys [key value]} :params}
     (let [db (d/db conn)]
