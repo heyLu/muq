@@ -38,10 +38,10 @@
     :db/cardinality :db.cardinality/many
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db -2)
-    :db/ident :tag
+    :db/ident :name
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/one
-    :db/unique :db.unique/value
+    :db/unique :db.unique/identity
     :db.install/_attribute :db.part/db}])
 
 (def arashi-url
