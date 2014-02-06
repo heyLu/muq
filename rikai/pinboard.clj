@@ -11,9 +11,9 @@
     (conj
      {:url (URI. href)
       :title description
-      :note extended
       :time (du/string->datomic-value time :db.type/instant)
       :tags (if (string/blank? tag) [] (string/split tag #" "))}
+     (if-not (string/blank? extended) {:note extended})
      (if (= shared "yes") {:public true}))))
 
 (defn parse-posts [file]
