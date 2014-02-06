@@ -30,17 +30,20 @@
     value))
 
 (defn entity->html [db entity]
-  (let [id (:db/id entity)]
-    [:div.entity
-     (map (fn [[k v]]
-            (let [{type :db/valueType} (d/entity db k)]
-              [:div
-               [:span.attr (pr-str k)]
-               " "
-               (if (coll? v)
-                 (interpose " " (map #(attr->html type %) v))
-                 [:span.value (attr->html type v)])]))
-          entity)]))
+  (map (fn [[k v]]
+         (let [{type :db/valueType} (d/entity db k)]
+           [:div
+            [:span.attr (pr-str k)]
+            " "
+            (if (and (coll? v) (not (instance? EntityMap v)))
+              (interpose " " (map #(attr->html type %) v))
+              [:span.value (attr->html type v)])]))
+       entity))
+
+(defn query->html-links [db query-result]
+  (map (fn [[eid]]
+         [:li (link-to (d/entity db eid))])
+       query-result))
 
 (defn entity->html-summary [db entity]
   [:div.entity
@@ -62,8 +65,9 @@
           [:div
            (map (fn [[eid]]
                   [:div
-                   [:a {:href (str "/entity/" eid ".html")} eid]
-                   (entity->html db (d/entity db eid))])
+                   (link-to (d/entity db eid))
+                   [:div.entity
+                    (entity->html db (d/entity db eid))]])
                 query-result)]]]))
 
 (let [db (d/db conn)]
