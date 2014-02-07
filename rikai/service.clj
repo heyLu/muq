@@ -1,6 +1,5 @@
 (ns rikai.service
-  (:require [compojure.core :as c]
-            [clojure.edn :as edn]
+  (:require [clojure.edn :as edn]
 
             [rikai.util :as u]
             [rikai.datomic-utils :as du]
@@ -8,7 +7,7 @@
   (:use [ring.util.response :only (header file-response)]
         [ring.middleware.params :only (wrap-params)]
         [ring.middleware.keyword-params :only (wrap-keyword-params)]
-        [compojure.core :only (GET POST PUT)]
+        [compojure.core :only (defroutes GET POST PUT)]
         [hiccup.core :only (html)]
         [rikai.datomic-utils :only (find-by-str with-db)])
   (:import [datomic.query EntityMap]))
@@ -85,7 +84,7 @@
         :where ['?e "tags" '?r]
                ['?r "name" "compiler"]] db))
 
-(c/defroutes routes
+(defroutes routes
   (GET "/" []
     (-> (file-response "docs.md")
         (header "Content-Type" "text/plain")))
