@@ -8,6 +8,7 @@
         [ring.middleware.params :only (wrap-params)]
         [ring.middleware.keyword-params :only (wrap-keyword-params)]
         [compojure.core :only (defroutes GET POST PUT)]
+        [compojure.response :only (Renderable)]
         [hiccup.core :only (html)]
         [rikai.datomic-utils :only (find-by-str with-db)])
   (:import [datomic.query EntityMap]))
@@ -71,18 +72,41 @@
          [:head [:style ".entity { margin-left: 1em; }"]]
          [:body
           [:div
-           (map (fn [[eid]]
+           (map (fn [entity]
                   [:div
-                   (link-to (d/entity db eid))
+                   (link-to entity)
                    [:div.entity
-                    (entity->html db (d/entity db eid))]])
+                    (entity->html db entity)]])
                 query-result)]]]))
 
-(let [db (d/db conn)]
-  #_(entity->html db (d/entity db (find-by-str db :url "http://news.papill0n.org")))
-  (d/q [:find '?e
-        :where ['?e "tags" '?r]
-               ['?r "name" "compiler"]] db))
+; rendering:
+;   type: edn, html, (json?)
+;   standard or pretty printed (possibly a type because only applies to edn/json)
+;   extended info
+;  => (render-edn pretty? extended?)
+;  => (render-html extended?)
+;  but we also have different data types: entity/datum, query result (list of entities)
+;  and we also want offset/limit
+
+(defn edn-response [data]
+  {:status 200
+   :body (pr-str data)
+   :headers {"Content-Type" "text/plain"}})
+
+(defn html-response [data]
+  {:status 200
+   :body (html data)
+   :headers {"Content-Type" "text/html"}})
+
+(defn query->renderable [db query-result]
+  (reify
+    Renderable
+    (render [_ req]
+      (let [content-type (get-in req [:headers "content-type"])
+            entities (map (fn [[eid]] (d/entity db eid)) query-result)]
+        (condp = content-type
+          "application/edn" (edn-response (map #(into {} %) entities))
+          (html-response (query->html db entities)))))))
 
 (defroutes routes
   (GET "/" []
@@ -107,14 +131,14 @@
         (http-response 404 "Missing parameter: value."))))
   (GET "/entity-with/:key" [key]
     (let [db (d/db conn)]
-      (query->html db (d/q [:find '?e :where ['?e key '_]] db))))
+      (query->renderable db (d/q [:find '?e :where ['?e key '_]] db))))
   (GET "/entity-with-ref/:ref/:key" {{:keys [ref key value]} :params}
     (let [db (d/db conn)
           attr-type (:db/valueType (d/entity db key))
           value (du/string->datomic-value value attr-type)]
-      (query->html db (d/q [:find '?e
-                            :where ['?e ref '?r]
-                                   ['?r key value]] db))))
+      (query->renderable db (d/q [:find '?e
+                                  :where ['?e ref '?r]
+                                         ['?r key value]] db))))
   (GET "/entity-matching/:key" {{:keys [key value]} :params}
     )
   (POST "/entity" {body :body}
