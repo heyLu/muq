@@ -10,6 +10,10 @@
 
     GET /entity-with-ref/:ref/:key?value=:value - get all entities that reference an entity which has the value for the key
 
+`/entity-with` and `entity-with-ref` also support `start`, `count` and `q`
+parameters to further filter the results. the `q` parameter searches all (!)
+fields of the results for matching values.
+
 # examples
 
     GET /entity/20
