@@ -78,11 +78,28 @@
       [:ul
        (query->html-links db references)]])])
 
+(defn entity-matches [entity m]
+  (some (fn [[_ v]]
+          (.contains (str v) m))
+        entity))
+
+(defn filter-results [start limit search results]
+  (let [start (or (u/parse-int start) 0)
+        limit (or (u/parse-int limit) 100)
+        search (or search "")]
+    (->> results
+         (filter #(entity-matches % search))
+         (drop start)
+         (take limit))))
+
 (defn ->renderable [html-fn data & args]
   (reify
     Renderable
     (render [_ req]
-      (let [content-type (get-in req [:headers "content-type"])]
+      (let [content-type (get-in req [:headers "content-type"])
+            data (if (and (coll? data) (not (map? data)))
+                   (let [{:keys [start count q]} (:params req)]
+                     (filter-results start count q data)))]
         (condp = content-type
           "application/edn" (edn-response data)
           (html-response (apply html-fn data args)))))))
