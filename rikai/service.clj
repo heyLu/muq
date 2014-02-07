@@ -119,14 +119,13 @@
   (GET ["/entity/:id.html", :id #"[0-9]+"] [id]
     (let [db (d/db conn)]
       (if-let [entity (d/entity db (u/parse-long id))]
-        (http-response 200 (html (entity-with-refs->html db entity)))
+        (html-response (entity-with-refs->html db entity))
         (http-response 404 "No such entity."))))
   (GET "/entity-by/:key" {{:keys [key value]} :params}
     (let [db (d/db conn)]
       (if value
         (if-let [entity (d/entity db (find-by-str db (keyword key) value))]
-          (http-response 200 (html (entity-with-refs->html db entity))
-                         :headers {"Content-Type" "text/html"})
+          (html-response (entity-with-refs->html db entity))
           (http-response 404 "No such entity."))
         (http-response 404 "Missing parameter: value."))))
   (GET "/entity-with/:key" [key]
