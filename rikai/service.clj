@@ -99,7 +99,7 @@
     (let [db (d/db conn)]
       (if value
         (if-let [entity (d/entity db (find-by-str db (keyword key) value))]
-          (http-response 200 (html (entity->html db entity))
+          (http-response 200 (html (entity-with-refs->html db entity))
                          :headers {"Content-Type" "text/html"})
           (http-response 404 "No such entity."))
         (http-response 404 "Missing parameter: value."))))
