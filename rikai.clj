@@ -139,3 +139,20 @@ tomorrow? probably finally starting on a real prototype?"
 
 (with-db (db)
   (tagged-with "project"))
+
+(defn visit [address [lat lon] name time & [more-attrs]]
+  (merge {:db/id (d/tempid :db.part/user -1)
+          :latitude lat
+          :longitude lon
+          :name name
+          :time time}
+         more-attrs))
+
+(d/transact conn
+  [(visit "merseburger straße 95, leipzig altlindenau"
+          [15.5332 12.3307]
+          "m. ellebrecht, ?, ?"
+          #inst "2014-02-03T19:00:00+01:00"
+          {:url (URI. "https://www.wg-gesucht.de/4291948.html")})])
+
+;(defentity fn-name [x y z] body) ;=> (defn fn-name [x y z & [more-attrs]] (merge body more-attrs {:db/id ...}))
