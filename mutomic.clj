@@ -3,6 +3,9 @@
 
 Trying to understand datomic, mostly.")
 
+; - what happens when you add an attribute twice?
+; - how do you search an index for attributes?
+
 (def next-entity-id (atom 0))
 
 (defn next-id []
