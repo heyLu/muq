@@ -21,9 +21,19 @@
          :body body}
         attrs))
 
+(defn edn-response [data]
+  {:status 200
+   :body (pr-str data)
+   :headers {"Content-Type" "text/plain"}})
+
+(defn html-response [data]
+  {:status 200
+   :body (html data)
+   :headers {"Content-Type" "text/html"}})
+
 (defn link-to [entity]
   (let [name (or (:title entity) (:name entity) (:db/id entity))]
-    [:a {:href (str "/entity/" (:db/id entity) ".html")} name]))
+    [:a {:href (str "/entity/" (:db/id entity))} name]))
 
 (defn attr->html [type value]
   (case type
@@ -47,25 +57,47 @@
          [:li (link-to (d/entity db eid))])
        query-result))
 
-(defn entity-with-refs->html [db entity]
+(defn references-of [db entity]
+  (mapcat (fn [[k v]]
+            (if-let [ref-attrs (:referenced-by (d/entity db k))]
+              (let [v (if (instance? EntityMap v)
+                        (:db/id v)
+                        v)
+                    ref-vals (d/q [:find '?e
+                                   :where ['?e (first ref-attrs) '?r]
+                                   ['?r k v]] db)]
+                ref-vals)))
+          entity))
+
+(defn entity-with-refs->html [db [entity references]]
   [:div.entity
    (entity->html db entity)
-   [:div
-    [:h3 "references"]
-    (map (fn [[k v]]
-           (if-let [ref-attrs (:referenced-by (d/entity db k))]
-             (let [v (if (instance? EntityMap v)
-                       (:db/id v)
-                       v)
-                   ref-vals (d/q [:find '?e
-                                  :where ['?e (first ref-attrs) '?r]
-                                         ['?r k v]] db)]
-               (if (seq ref-vals)
-                 [:div
-                  [:h4 [:a {:href (str "/entity-with-ref/" (first ref-attrs) "/" k "?value=" v)} v]]
-                  [:ul
-                   (query->html-links db ref-vals)]]))))
-         entity)]])
+   (if-let [references (seq references)]
+     [:div
+      [:h3 "references"]
+      [:ul
+       (query->html-links db references)]])])
+
+(defn ->renderable [html-fn data & args]
+  (reify
+    Renderable
+    (render [_ req]
+      (let [content-type (get-in req [:headers "content-type"])]
+        (condp = content-type
+          "application/edn" (edn-response data)
+          (html-response (apply html-fn data args)))))))
+
+(defn entity-with-refs->renderable [db entity]
+  (->renderable #(entity-with-refs->html db %) [entity (references-of db entity)]))
+
+; rendering:
+;   type: edn, html, (json?)
+;   standard or pretty printed (possibly a type because only applies to edn/json)
+;   extended info
+;  => (render-edn pretty? extended?)
+;  => (render-html extended?)
+;  but we also have different data types: entity/datum, query result (list of entities)
+;  and we also want offset/limit
 
 (defn query->html [db query-result]
   (html [:html
@@ -79,53 +111,23 @@
                     (entity->html db entity)]])
                 query-result)]]]))
 
-; rendering:
-;   type: edn, html, (json?)
-;   standard or pretty printed (possibly a type because only applies to edn/json)
-;   extended info
-;  => (render-edn pretty? extended?)
-;  => (render-html extended?)
-;  but we also have different data types: entity/datum, query result (list of entities)
-;  and we also want offset/limit
-
-(defn edn-response [data]
-  {:status 200
-   :body (pr-str data)
-   :headers {"Content-Type" "text/plain"}})
-
-(defn html-response [data]
-  {:status 200
-   :body (html data)
-   :headers {"Content-Type" "text/html"}})
-
 (defn query->renderable [db query-result]
-  (reify
-    Renderable
-    (render [_ req]
-      (let [content-type (get-in req [:headers "content-type"])
-            entities (map (fn [[eid]] (d/entity db eid)) query-result)]
-        (condp = content-type
-          "application/edn" (edn-response (map #(into {} %) entities))
-          (html-response (query->html db entities)))))))
+  (->renderable #(query->html db %) (map (fn [[eid]] (d/entity db eid)) query-result)))
 
 (defroutes routes
   (GET "/" []
     (-> (file-response "docs.md")
         (header "Content-Type" "text/plain")))
   (GET ["/entity/:id", :id #"[0-9]+"] [id]
-    (if-let [entity (d/entity (d/db conn) (u/parse-long id))]
-      (http-response 200 (pr-str (into {} entity)) :headers {"Content-Type" "text/plain"})
-      (http-response 404 "No such entity")))
-  (GET ["/entity/:id.html", :id #"[0-9]+"] [id]
     (let [db (d/db conn)]
       (if-let [entity (d/entity db (u/parse-long id))]
-        (html-response (entity-with-refs->html db entity))
+        (entity-with-refs->renderable db (d/touch entity))
         (http-response 404 "No such entity."))))
   (GET "/entity-by/:key" {{:keys [key value]} :params}
     (let [db (d/db conn)]
       (if value
         (if-let [entity (d/entity db (find-by-str db (keyword key) value))]
-          (html-response (entity-with-refs->html db entity))
+          (entity-with-refs->renderable db (d/touch entity))
           (http-response 404 "No such entity."))
         (http-response 404 "Missing parameter: value."))))
   (GET "/entity-with/:key" [key]
