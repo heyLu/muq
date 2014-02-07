@@ -6,6 +6,5 @@
                  [ring "1.2.1"]
                  [compojure "1.1.6"]
                  [hiccup "1.0.5"]]
-  :source-paths ["."]
   :plugins [[lein-ring "0.8.10"]]
   :ring {:handler rikai.service/app})
