@@ -157,8 +157,6 @@
       (query->renderable db (d/q [:find '?e
                                   :where ['?e ref '?r]
                                          ['?r key value]] db))))
-  (GET "/entity-matching/:key" {{:keys [key value]} :params}
-    )
   (POST "/entity" {body :body}
     (d/transact conn
        [(assoc (edn/read body) :db/id (d/tempid :db.part/user -1))])
