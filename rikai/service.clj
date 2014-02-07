@@ -85,6 +85,7 @@
                ['?r "name" "compiler"]] db))
 
 (c/defroutes routes
+  (GET "/" [] (http-response 200 (slurp "docs.md") :headers {"Content-Type" "text/plain"}))
   (GET ["/entity/:id", :id #"[0-9]+"] [id]
     (if-let [entity (d/entity (d/db conn) (u/parse-long id))]
       (http-response 200 (pr-str (into {} entity)) :headers {"Content-Type" "text/plain"})
