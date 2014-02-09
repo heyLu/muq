@@ -157,10 +157,22 @@
       (query->renderable db (d/q [:find '?e
                                   :where ['?e ref '?r]
                                          ['?r key value]] db))))
-  (POST "/entity" {body :body}
-    (d/transact conn
-       [(assoc (edn/read body) :db/id (d/tempid :db.part/user -1))])
-    "ok")
+  (GET "/entity" []
+    (html [:html
+           [:head [:title "New entity"]]
+           [:body
+            [:form {:id "entity", :action "/entity", :method "post"}
+             [:textarea {:form "entity", :name "entity-tx", :rows 20, :cols 80}]
+             [:input {:type "submit"}]]]]))
+  (POST "/entity" {{:keys [entity-tx]} :params}
+        (let [tid (d/tempid :db.part/user -1)
+              res (d/transact conn
+                              [(assoc (edn/read-string entity-tx) :db/id tid)])
+              {:keys [db-after tempids]} @res
+              eid (d/resolve-tempid db-after tempids tid)]
+          (http-response 303 (str eid)
+                         :headers {"Content-Type" "text/plain"
+                                   "Location" (str "/entity/" eid)})))
   (PUT "/entity/:id" {{:keys [id]} :params, body :body}
     (let [eid (d/entity (d/db conn) (u/parse-long id))]
       (d/transact conn
