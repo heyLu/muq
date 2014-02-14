@@ -1,5 +1,6 @@
 (ns rikai.service
   (:require [clojure.edn :as edn]
+            [clojure.string :as string]
 
             [rikai.util :as u]
             [rikai.datomic-utils :as du]
@@ -131,6 +132,34 @@
 (defn query->renderable [db query-result]
   (->renderable #(query->html db %) (map (fn [[eid]] (d/entity db eid)) query-result)))
 
+(defn split-first [s str-or-char]
+  (let [split (str str-or-char)
+        idx (.indexOf s split)]
+    (if (< idx 0)
+      [s]
+      [(.substring s 0 idx) (.substring s (+ idx (count split)))])))
+
+(defn ->kvs [s]
+  (map (fn [kv-str]
+         (split-first kv-str \:))
+       (string/split s #",")))
+
+(defn kv->datomic-kv [db [k v]]
+  (let [kw (keyword k)
+        attr-type (:db/valueType (d/entity db kw))]
+    (if v
+      [kw (du/string->datomic-value v attr-type)]
+      [kw])))
+
+(defn kv->clause [var [k v]]
+  [var k (or v (gensym "?v"))])
+
+(defn ->clauses [db with]
+  (map #(->> %
+             (kv->datomic-kv db)
+             (kv->clause '?e))
+       (->kvs with)))
+
 (defroutes routes
   (GET "/" []
     (-> (file-response "docs.md")
@@ -147,6 +176,10 @@
           (entity-with-refs->renderable db (d/touch entity))
           (http-response 404 "No such entity."))
         (http-response 404 "Missing parameter: value."))))
+  (GET "/entities" {{:keys [with]} :params}
+    (let [db (d/db conn)
+          clauses (->clauses db with)]
+      (query->renderable db (d/q (apply conj [:find '?e :where] clauses) db))))
   (GET "/entity-with/:key" [key]
     (let [db (d/db conn)]
       (query->renderable db (d/q [:find '?e :where ['?e key '_]] db))))
