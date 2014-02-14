@@ -139,26 +139,24 @@
       [s]
       [(.substring s 0 idx) (.substring s (+ idx (count split)))])))
 
-(defn ->kvs [s]
-  (map (fn [kv-str]
-         (split-first kv-str \:))
-       (string/split s #",")))
-
-(defn kv->datomic-kv [db [k v]]
-  (let [kw (keyword k)
-        attr-type (:db/valueType (d/entity db kw))]
+(defn ->datomic-val [db k v]
+  (let [attr-type (:db/valueType (d/entity db k))]
     (if v
-      [kw (du/string->datomic-value v attr-type)]
-      [kw])))
+      (du/string->datomic-value v attr-type))))
 
-(defn kv->clause [var [k v]]
-  [var k (or v (gensym "?v"))])
+(defn ->clause [db var s]
+  (if (.contains s "->")
+    (let [[ref kv] (split-first s "->")
+          ref-e (gensym "?e")]
+      (apply conj [[var (keyword ref) ref-e]]
+            (->clause db ref-e kv)))
+    (let [[k v] (split-first s ":")
+          kw (keyword k)]
+      [[var kw (or (->datomic-val db k v) (gensym "?v"))]])))
 
-(defn ->clauses [db with]
-  (map #(->> %
-             (kv->datomic-kv db)
-             (kv->clause '?e))
-       (->kvs with)))
+(defn ->clauses [db s]
+  (apply concat (map #(->clause db '?e %)
+                     (string/split s #","))))
 
 (defroutes routes
   (GET "/" []
