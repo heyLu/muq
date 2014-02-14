@@ -158,6 +158,12 @@
   (apply concat (map #(->clause db '?e %)
                      (string/split s #","))))
 
+(defn read-uri [uri]
+  (java.net.URI. uri))
+
+(defn read-edn-string [s]
+  (edn/read-string {:readers {'uri read-uri}} s))
+
 (defroutes routes
   (GET "/" []
     (-> (file-response "docs.md")
@@ -188,7 +194,7 @@
   (POST "/entity" {{:keys [entity-tx]} :params}
         (let [tid (d/tempid :db.part/user -1)
               res (d/transact conn
-                              [(assoc (edn/read-string entity-tx) :db/id tid)])
+                              [(assoc (read-edn-string entity-tx) :db/id tid)])
               {:keys [db-after tempids]} @res
               eid (d/resolve-tempid db-after tempids tid)]
           (http-response 303 (str eid)
