@@ -178,16 +178,6 @@
     (let [db (d/db conn)
           clauses (->clauses db with)]
       (query->renderable db (d/q (apply conj [:find '?e :where] clauses) db))))
-  (GET "/entity-with/:key" [key]
-    (let [db (d/db conn)]
-      (query->renderable db (d/q [:find '?e :where ['?e key '_]] db))))
-  (GET "/entity-with-ref/:ref/:key" {{:keys [ref key value]} :params}
-    (let [db (d/db conn)
-          attr-type (:db/valueType (d/entity db key))
-          value (du/string->datomic-value value attr-type)]
-      (query->renderable db (d/q [:find '?e
-                                  :where ['?e ref '?r]
-                                         ['?r key value]] db))))
   (GET "/entity" []
     (html [:html
            [:head [:title "New entity"]]
