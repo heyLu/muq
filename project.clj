@@ -1,6 +1,6 @@
 (defproject rikai "0.1-dev"
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [com.datomic/datomic-free "0.9.4497"]
+                 [com.datomic/datomic-free "0.9.4556"]
 
                  ; service
                  [ring "1.2.1"]
