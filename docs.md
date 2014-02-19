@@ -6,7 +6,7 @@
 
     GET /entity-by/:key?value=:value - get an entity which has the value for the key
 
-    GET /entites?with=:spec - get all entities matching the spec (see below)
+    GET /entities?with=:spec - get all entities matching the spec (see below)
 
 `/entites` supports `start`, `count` and `q` parameters to further filter the results.
 the `q` parameter searches all (!) fields of the results for matching values.
@@ -22,5 +22,5 @@ the `q` parameter searches all (!) fields of the results for matching values.
     GET /entities?with=note
     => all entities that have a :note attribute
 
-    GET /entites?with=tags->name:people
+    GET /entities?with=tags->name:people
     => all entities tagged with "people"
