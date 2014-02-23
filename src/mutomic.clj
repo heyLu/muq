@@ -1,74 +1,208 @@
 (ns mutomic
   "A µcroscopic in-memory temporal database in memory.
 
-Trying to understand datomic, mostly.")
+Trying to understand datomic, mostly."
+  (:require [clojure.set :as set]))
 
-; - what happens when you add an attribute twice?
-; - how do you search an index for attributes?
+(defn data-matches [a b]
+  (if (symbol? a)
+    {a b}
+    (if (= a b) {} nil)))
 
-(def next-entity-id (atom 0))
+(defn clause-matches [clause datom]
+  (let [[ce ca cv] clause
+        [de da dv] datom
+        me (data-matches ce de)
+        ma (data-matches ca da)
+        mv (data-matches cv dv)]
+    (if (and me ma mv)
+      (into {} (filter map? [me ma mv]))
+      nil)))
 
-(defn next-id []
-  (dec (swap! next-entity-id inc)))
+(clause-matches '[?e :name "Joe"] [:joe :name "Joe"])
 
-(defn id-maker []
-  (let [eid (atom -1)]
-    (fn []
-      (inc (swap! eid dec)))))
+(defn bindings-consistent? [b1 b2]
+  (let [common-keys (set/intersection (into #{} (keys b1)) (into #{} (keys b2)))]
+    (every? (fn [k]
+              (= (b1 k) (b2 k)))
+            common-keys)))
 
-(defn assign-real-ids [tx-data]
-  (reduce (fn [[res ids] [tid & rs]]
-            (let [[ids eid] (if-let [id (ids tid)]
-                              [ids id]
-                              (let [id (next-id)]
-                                [(assoc ids tid id) id]))]
-              [(conj res (apply conj [eid] rs)) ids]))
-          [[] {}]
-          tx-data))
+(let [clause1 '[?e :name "Joe"]
+      clause2 '[?e :name "Fred"]
+      clause3 '[?e :age 10]
+      joe [:joe :name "Joe"]
+      fred [:fred :name "Fred"]]
+  (vector ;bindings-consistent?
+    (clause-matches clause1 joe)
+    (clause-matches clause3 joe)))
 
-(defn tx->datoms [{e :id :as tx}]
-  (map (fn [[a v]]
-         [e a v])
-       (dissoc tx :id)))
+(def fred-julia-joe
+  [[:fred :name "Fred"]
+   [:julia :name "Julia"]
+   [:julia :is "awesome"]
+   [:julia :is "fun"]
+   [:julia :likes :joe]
+   [:fred :age 13]
+   [:julia :age 10]
+   [:joe :age 7]
+   [:joe :likes :fred]
+   [:joe :likes :julia]
+   [:joe :likes :flowers]
+   [:joe :name "Joe"]])
 
-(defn tx-data->datoms [tx-data]
-  (reduce (partial apply conj)
-          []
-          (map tx->datoms tx-data)))
+(filter #(clause-matches '[?e :name ?n] %) fred-julia-joe)
 
-(defn transact [db tx-data]
-  ; decompose into datoms
-  ; assign ids (replace temp ids)
-  ; resolve refs (replace all :db.type/ref attribute values with assigned ids)
-  ; check attribute types
-  (->>
-    (tx-data->datoms tx-data)
-    assign-real-ids))
+(defn merge-if-consistent [b1 b2]
+  (if (bindings-consistent? b1 b2)))
 
-(defn index [idx idx-type datom]
-  (let [[e a v t] datom
-        k (condp = idx-type
-            :eavt [e a v t]
-            :aevt [a e v t]
-            ; :db/index = true
-            :avet [a v e t]
-            ; :db.type/ref, reverse index
-            :vaet [v a e t])]
-    (update-in idx k conj e)))
+(defn clauses-match [clauses datoms]
+  (reduce (fn [bindings clause]
+            (let [new-bindings (clause-matches clause datom)]
+              (if bindings
+                (if (and new-binding (bindings-consistent? bindings new-binding))
+                  (conj bindings new-binding)
+                  nil)
+                nil)))
+          {}
+          clauses))
 
-(def entities
-  [{:id -1
-    :url "http://github.com/heyLu"
-    :title "heyLu (Lucas Stadler)"}
-   {:id -2
-    :type :visit
-    :to -1
-    :time #inst "2014-02-01T17:57:00+01:00"}])
+(clauses-match '[[?e :name "Joe"]
+                 [?e :age 10]
+                 [?e :likes :julia]]
+               [:joe :name "Joe"])
+;=> {?e [[:name "Joe"] [:age 10] [:likes :julia]]}
 
-(defn query [{vars :find, clauses :where} db]
-  )
+'[[?j :name "Joe"]
+  [?j :friend ?p]
+  [?p :age ?a]
+  [(> ?a 10)]]
+;=> {?e [[:name "Joe"] [:friend ?p]]
+;    ?p [[:age ?a]]
+;    ?a [[(> 10)]]}
+; ?j -> ?p -> ?a
+; ?j => candidates for ?p
+; ?p => candidates for ?a
+; ?a => determines valid ?p and ?j
 
-(query [:find ?e :where [?e :age 10]] (make-db {1 {:name "fred", :age 10}
-                                                2 {:name "paula", :age 13}
-                                                3 {:name "?", :age -1}
-                                                4 {:name "paul", :age 10}}))
+(defn variable? [v]
+  (and (symbol? v) (.startsWith (name v) "?")))
+
+(defn join-vars [clauses]
+  (reduce (fn [vars [var count]]
+            (if (and (variable? var) (> count 1))
+              (conj vars var)
+              vars))
+          #{}
+          (frequencies (apply concat clauses))))
+
+(defn join-var-dependencies [join-vars clauses]
+  (reduce (fn [pairs [e & vs]]
+            (let [jvs (filter #(contains? join-vars %) vs)]
+              (if (and (contains? join-vars e) (seq jvs))
+                (reduce #(update-in %1 [e] conj %2) pairs jvs)
+                pairs)))
+          {}
+          clauses))
+
+(join-var-dependencies (join-vars story-clauses) story-clauses)
+
+(defn root-vars [clauses]
+  (filter (fn [var]
+            (every? #(not (some #{var} (rest %))) clauses))
+          (join-vars clauses)))
+
+(root-vars story-clauses)
+
+(defn clause-dependencies [join-vars clause]
+  (let [[e? a? v?] (map #(if (symbol? %) %) clause)
+        {js true vs false} (group-by #(contains? join-vars %) (filter variable? clause))]
+    [js vs]))
+
+(clause-dependencies '#{?e ?tx ?user} '[?e :story/title ?v ?tx ?added])
+
+; *join vars* are variables that appear more than once?
+; only join vars have dependencies
+; or rather: dependencies between join vars are special
+
+(defn dependencies [clauses]
+  (join-var-dependencies (join-vars clauses) clauses))
+
+(defn clauses-with [var clauses]
+  (filter #(some #{var} %) clauses))
+
+(defn join-clauses-with [var clauses]
+  (filter #(= (first %) var) clauses))
+
+(defn replace-vars [env datom]
+  (mapv #(or (env %) %) datom))
+
+(defn step [env clause datoms]
+  (filter identity
+          (map (fn [datom]
+                 (if-let [new-env (clause-matches (replace-vars env clause) datom)]
+                   (if (bindings-consistent? env new-env)
+                     (conj env new-env)
+                     nil)
+                   nil))
+               datoms)))
+
+(step {} '[?e :name ?n] fred-julia-joe)
+
+; take one clause
+; match it against the datoms -> set of matches that bind the var
+; for each of those:
+;   take one clause and replace the bound vars in it
+;   match it against the datoms -> set of matches with possibly new bindings
+;   back to 'for each of those ...'
+
+(defn resolve-var* [env clauses datoms]
+  (if (seq clauses)
+    (if-let [envs (step env (first clauses) datoms)]
+      (flatten (map #(resolve-var* % (rest clauses) datoms) envs))
+      nil)
+    env))
+
+(resolve-var* {} '[[?e :name ?n] [?e :age ?a]] fred-julia-joe)
+
+(defn resolve-var [var-name clauses datoms]
+  (let [clauses (join-clauses-with var-name clauses)]
+    (resolve-var* {} clauses datoms)))
+
+(resolve-var '?e '[[?e :name ?n] [?e :age ?a]] fred-julia-joe)
+
+(defn query-naive [clauses datoms]
+  (let [join-vars (join-vars clauses)
+        join-var-deps (join-var-dependencies join-vars clauses)
+        root-vars (root-vars clauses)
+        root-var (first root-vars)]
+    (assert (= (count root-vars) 1))
+    (resolve-var root-var clauses datoms)))
+
+(resolve-var '?e '[[?e :name ?n]
+                   [?e :age ?a]
+                   [?e :likes ?o]
+                   [?o :likes ?e]] fred-julia-joe)
+
+(query-naive '[[?e :name ?n] [?e :age ?a] [?e :likes ?o] [?o :likes ?e]] fred-julia-joe)
+; ?e -> ?tx -> ?user
+
+(def story-clauses
+  '[[?e :story/title ?v ?tx ?added]
+    [?e :story/url ?url]
+    [?tx :source/user ?user]
+    [?tx :db/txInstant ?inst]
+    [?user :user/email ?email]])
+; ?e could depend on ?tx, but doesn't. order doesn't matter, so that can't determine it
+; either.
+; (result variables don't matter. removing some doesn't change the "shape" of the result.)
+; maybe knowledge of eav, could help? because we know that a `v` can be a reference
+; which might indicate that `e`s are more likely be non-dependent?
+; so maybe it's about vars that occur in the `e` position, but not in the `v` position?
+
+(dependencies story-clauses)
+
+;=> {?e [?v ?tx ?added ?url]
+;    ?tx [?user ?inst]
+;    ?user [?email]}
+;
+; variables should only appear as keys if they occur more than once?
