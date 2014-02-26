@@ -239,7 +239,14 @@ Trying to understand datomic, mostly."
     (is (= (q map-query fred-julia-joe)
            (q list-query fred-julia-joe)))))
 
-(defrecord Datum [e a v t])
+(defrecord Datum [e a v t]
+  clojure.lang.Indexed
+  (nth [_ i] (case i 0 e 1 a 2 v 3 t
+               (throw (IndexOutOfBoundsException.))))
+  (nth [this i default]
+    (if (<= 0 i 3)
+      (nth this i)
+      default)))
 
 (defn index [idx datom]
   (let [[e a v t] datom
