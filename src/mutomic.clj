@@ -65,6 +65,49 @@ Trying to understand datomic, mostly."
   (is (= (count (filter #(clause-matches '[?e :name ?n] %) fred-julia-joe))
          3)))
 
+(defrecord Datum [e a v t]
+  clojure.lang.Indexed
+  (nth [_ i] (case i 0 e 1 a 2 v 3 t
+               (throw (IndexOutOfBoundsException.))))
+  (nth [this i default]
+    (if (<= 0 i 3)
+      (nth this i)
+      default)))
+
+(defn index [idx datom]
+  (let [[e a v t] datom
+        t 0
+        datom (Datum. e a v t)]
+    (-> idx
+        (assoc-in (into [:eavt] [e a v t]) datom)
+        (assoc-in (into [:aevt] [a e v t]) datom))))
+
+(defn index-many [idx datoms]
+  (reduce index idx datoms))
+
+(def fred-julia-joe-index
+  (index-many nil fred-julia-joe))
+
+(defn datoms [idx idx-name & components]
+  (get-in idx (into [] (cons idx-name components))))
+
+;(datoms fred-julia-joe-index :eavt)
+
+(defn flatten-index [idx]
+  (if (instance? Datum idx) [idx] (mapcat flatten-index (vals idx))))
+
+(defn save! [f idx]
+  (with-open [w (fress/create-writer (io/output-stream f))]
+    (fress/write-object w idx)))
+
+;(save! (java.io.File. "fjj.idx.fsn") fred-julia-joe-index)
+
+(defn load! [f]
+  (with-open [r (fress/create-reader (io/input-stream f))]
+    (fress/read-object r)))
+
+;(load! "fjj.idx.fsn")
+
 (comment
   (defn merge-if-consistent [b1 b2]
     (if (bindings-consistent? b1 b2)))
@@ -238,49 +281,6 @@ Trying to understand datomic, mostly."
                      [?e :age ?a]]]
     (is (= (q map-query fred-julia-joe)
            (q list-query fred-julia-joe)))))
-
-(defrecord Datum [e a v t]
-  clojure.lang.Indexed
-  (nth [_ i] (case i 0 e 1 a 2 v 3 t
-               (throw (IndexOutOfBoundsException.))))
-  (nth [this i default]
-    (if (<= 0 i 3)
-      (nth this i)
-      default)))
-
-(defn index [idx datom]
-  (let [[e a v t] datom
-        t 0
-        datom (Datum. e a v t)]
-    (-> idx
-        (assoc-in (into [:eavt] [e a v t]) datom)
-        (assoc-in (into [:aevt] [a e v t]) datom))))
-
-(defn index-many [idx datoms]
-  (reduce index idx datoms))
-
-(def fred-julia-joe-index
-  (index-many nil fred-julia-joe))
-
-(defn datoms [idx idx-name & components]
-  (get-in idx (into [] (cons idx-name components))))
-
-;(datoms fred-julia-joe-index :eavt)
-
-(defn flatten-index [idx]
-  (if (instance? Datum idx) [idx] (mapcat flatten-index (vals idx))))
-
-(defn save! [f idx]
-  (with-open [w (fress/create-writer (io/output-stream f))]
-    (fress/write-object w idx)))
-
-;(save! (java.io.File. "fjj.idx.fsn") fred-julia-joe-index)
-
-(defn load! [f]
-  (with-open [r (fress/create-reader (io/input-stream f))]
-    (fress/read-object r)))
-
-;(load! "fjj.idx.fsn")
 
 (comment
   (def story-clauses
