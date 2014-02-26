@@ -250,6 +250,7 @@ Trying to understand datomic, mostly."
 
 (defn index [idx datom]
   (let [[e a v t] datom
+        t 0
         datom (Datum. e a v t)]
     (-> idx
         (assoc-in (into [:eavt] [e a v t]) datom)
@@ -259,7 +260,7 @@ Trying to understand datomic, mostly."
   (reduce index idx datoms))
 
 (def fred-julia-joe-index
-  (index-many nil (map #(conj (vec %) 0) fred-julia-joe)))
+  (index-many nil fred-julia-joe))
 
 (defn datoms [idx idx-name & components]
   (get-in idx (into [] (cons idx-name components))))
