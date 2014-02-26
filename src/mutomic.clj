@@ -216,6 +216,27 @@ Trying to understand datomic, mostly."
         friends (query-naive friends-with-attrs fred-julia-joe)]
     (is (= (count friends) 2))))
 
+(defn normalize-query [query]
+  (if (map? query)
+    query
+    (into {} (map (fn [[k v]]
+                      [(first k) (vec v)])
+                    (partition 2 (partition-by keyword? query))))))
+
+(defn q [query db]
+  (let [{clauses :where} (normalize-query query)]
+    (query-naive clauses db)))
+
+(deftest test-q
+  (let [map-query '{:find [?e]
+                    :where [[?e :name ?n]
+                            [?e :age ?a]]}
+        list-query '[:find ?e
+                     :where [?e :name ?n]
+                     [?e :age ?a]]]
+    (is (= (q map-query fred-julia-joe)
+           (q list-query fred-julia-joe)))))
+
 (comment
   (def story-clauses
     '[[?e :story/title ?v ?tx ?added]
