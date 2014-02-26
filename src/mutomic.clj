@@ -96,6 +96,12 @@ Trying to understand datomic, mostly."
 (defn flatten-index [idx]
   (if (instance? Datum idx) [idx] (mapcat flatten-index (vals idx))))
 
+(defn entity [idx eid]
+  (into {:db/id eid}
+        (map (fn [[k vt]]
+               [k (-> (flatten-index vt) first :v)])
+             (datoms idx :eavt eid))))
+
 (defn save! [f idx]
   (with-open [w (fress/create-writer (io/output-stream f))]
     (fress/write-object w idx)))
