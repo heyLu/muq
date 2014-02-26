@@ -265,6 +265,11 @@ Trying to understand datomic, mostly."
 (defn datoms [idx idx-name & components]
   (get-in idx (into [] (cons idx-name components))))
 
+;(datoms fred-julia-joe-index :eavt)
+
+(defn flatten-index [idx]
+  (if (instance? Datum idx) [idx] (mapcat flatten-index (vals idx))))
+
 (defn save! [f idx]
   (with-open [w (fress/create-writer (io/output-stream f))]
     (fress/write-object w idx)))
