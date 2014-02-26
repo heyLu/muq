@@ -1,5 +1,5 @@
 (ns mutomic
-  "A µcroscopic in-memory temporal database in memory.
+  "A µcroscopic in-memory temporal database.
 
 Trying to understand datomic, mostly."
   (:require [clojure.set :as set]
