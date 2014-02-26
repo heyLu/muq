@@ -210,15 +210,37 @@ Trying to understand datomic, mostly."
 (defn replace-vars [env datom]
   (mapv #(or (env %) %) datom))
 
+(defn expression-clause? [clause]
+  (list? (first clause)))
+
+(defmacro step-expression-clause [env clause]
+  `(let [f# (map #(or (~env %) %) (first ~clause))]
+     (if (eval f#)
+       (list ~env)
+       '())))
+
+(step-expression-clause '{?e 3} '[(< ?e 4)])
+
+(defn step-binding [env clause datom]
+  (if-let [new-env (clause-matches (replace-vars env clause) datom)]
+    (if (bindings-consistent? env new-env)
+      (conj env new-env)
+      nil)
+    nil))
+
 (defn step* [env clause datoms]
-  (filter identity
-          (map (fn [datom]
-                 (if-let [new-env (clause-matches (replace-vars env clause) datom)]
-                   (if (bindings-consistent? env new-env)
-                     (conj env new-env)
-                     nil)
-                   nil))
-               datoms)))
+  (if (expression-clause? clause)
+    (step-expression-clause env clause)
+    (filter identity
+            (map (fn [datom]
+                   (step-binding env clause datom))
+                 datoms))))
+
+(deftest test-step*
+  (let [env '{?e :joe ?n "Joe"}]
+    (is (= (step* env '[(= ?n "Joe")] fred-julia-joe)
+           env))
+    (is (nil? (step* env '[(= ?n "Trudy")] fred-julia-joe)))))
 
 (defn step-index [env clause idx]
   (let [[e a v] (replace-vars env clause)
