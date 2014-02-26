@@ -237,6 +237,24 @@ Trying to understand datomic, mostly."
     (is (= (q map-query fred-julia-joe)
            (q list-query fred-julia-joe)))))
 
+(defrecord Datum [e a v t])
+
+(defn index [idx datom]
+  (let [[e a v t] datom
+        datom (Datum. e a v t)]
+    (-> idx
+        (assoc-in (into [:eavt] [e a v t]) datom)
+        (assoc-in (into [:aevt] [a e v t]) datom))))
+
+(defn index-many [idx datoms]
+  (reduce index idx datoms))
+
+(def fred-julia-joe-index
+  (index-many nil (map #(conj (vec %) 0) fred-julia-joe)))
+
+(defn datoms [idx idx-name & components]
+  (get-in idx (into [] (cons idx-name components))))
+
 (comment
   (def story-clauses
     '[[?e :story/title ?v ?tx ?added]
