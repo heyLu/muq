@@ -368,6 +368,39 @@ to spare."
   ;(time (doall (q query s1)))
   (time (doall (q query s1i))))
 
+(defn next-id-maker []
+  (let [id-info (atom {:next-id 0
+                       :mapped-ids {}})]
+    (fn [& n]
+      (let [new-info (swap! id-info
+                            (fn [{:keys [next-id mapped-ids] :as id-info}]
+                              (if n
+                                (if (contains? mapped-ids n)
+                                  id-info
+                                  {:next-id (inc next-id)
+                                   :mapped-ids (assoc mapped-ids n next-id)})
+                                (assoc id-info :next-id (inc next-id)))))]
+        (if n
+          (get-in new-info [:mapped-ids n])
+          (dec (:next-id new-info)))))))
+
+(def next-id (next-id-maker))
+
+(defn expand-tx-datum [tx-datum]
+  (let [id (:db/id tx-datum)]
+    (map (fn [[k v]] [id k v]) (dissoc tx-datum :db/id))))
+
+(defn expand-tx-data [tx-data]
+  (mapcat (fn [tx-datum]
+            (if (map? tx-datum)
+              (expand-tx-datum tx-datum)
+              [tx-datum]))
+          tx-data))
+
+(defn movie-data []
+  (edn/read {:readers {'db/id (fn [[_ n]] (next-id n))}}
+            (java.io.PushbackReader. (io/reader "https://raw.github.com/jonase/learndatalogtoday/master/resources/db/data.edn"))))
+
 (comment
   (def story-clauses
     '[[?e :story/title ?v ?tx ?added]
