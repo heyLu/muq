@@ -2,7 +2,9 @@
   "A µcroscopic in-memory temporal database in memory.
 
 Trying to understand datomic, mostly."
-  (:require [clojure.set :as set])
+  (:require [clojure.set :as set]
+            [clojure.data.fressian :as fress]
+            [clojure.java.io :as io])
   (:use [clojure.test :only (deftest is)]))
 
 (defn data-matches [a b]
@@ -254,6 +256,18 @@ Trying to understand datomic, mostly."
 
 (defn datoms [idx idx-name & components]
   (get-in idx (into [] (cons idx-name components))))
+
+(defn save! [f idx]
+  (with-open [w (fress/create-writer (io/output-stream f))]
+    (fress/write-object w idx)))
+
+;(save! (java.io.File. "fjj.idx.fsn") fred-julia-joe-index)
+
+(defn load! [f]
+  (with-open [r (fress/create-reader (io/input-stream f))]
+    (fress/read-object r)))
+
+;(load! "fjj.idx.fsn")
 
 (comment
   (def story-clauses
