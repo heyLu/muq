@@ -215,11 +215,16 @@ Trying to understand datomic, mostly."
 
 (defn step-index [env clause idx]
   (let [[e a v] (replace-vars env clause)
-        [e? a? v?] (map variable? [e a v])
+        [e? a? v?] (map (comp not variable?) [e a v])
         t 0
         datoms (cond
                 (and e? a? v?) (datoms idx :eavt e a v)
-                :else (datoms idx :eavt))]
+                (and e? a?) (datoms idx :eavt e a)
+                e? (datoms idx :eavt e)
+                a? (datoms idx :aevt a)
+                :else (do
+                        (println "Warning: querying against the whole index")
+                        (datoms idx :eavt)))]
     (step* env clause (flatten-index datoms))))
 
 (defn step [env clause datoms]
