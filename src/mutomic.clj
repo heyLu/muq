@@ -171,12 +171,7 @@ Trying to understand datomic, mostly."
 (resolve-var '?e '[[?e :name ?n] [?e :age ?a]] fred-julia-joe)
 
 (defn query-naive [clauses datoms]
-  (let [join-vars (join-vars clauses)
-        join-var-deps (join-var-dependencies join-vars clauses)
-        root-vars (root-vars clauses)
-        root-var (first root-vars)]
-    (assert (= (count root-vars) 1))
-    (resolve-var root-var clauses datoms)))
+  (resolve-var* {} clauses datoms))
 
 (resolve-var '?e '[[?e :name ?n]
                    [?e :age ?a]
