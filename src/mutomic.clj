@@ -203,7 +203,7 @@ Trying to understand datomic, mostly."
 (defn replace-vars [env datom]
   (mapv #(or (env %) %) datom))
 
-(defn step [env clause datoms]
+(defn step* [env clause datoms]
   (filter identity
           (map (fn [datom]
                  (if-let [new-env (clause-matches (replace-vars env clause) datom)]
@@ -213,7 +213,23 @@ Trying to understand datomic, mostly."
                    nil))
                datoms)))
 
-(step {} '[?e :likes ?o] fred-julia-joe)
+(defn step-index [env clause idx]
+  (let [[e a v] (replace-vars env clause)
+        [e? a? v?] (map variable? [e a v])
+        t 0
+        datoms (cond
+                (and e? a? v?) (datoms idx :eavt e a v)
+                :else (datoms idx :eavt))]
+    (step* env clause (flatten-index datoms))))
+
+(defn step [env clause datoms]
+  (if (map? datoms)
+    (step-index env clause datoms)
+    (step* env clause datoms)))
+
+(into #{} (step {} '[?e :likes ?o] fred-julia-joe))
+
+(into #{} (step {} '[?e :likes ?o] fred-julia-joe-index))
 
 ; take one clause
 ; match it against the datoms -> set of matches that bind the var
@@ -280,7 +296,9 @@ Trying to understand datomic, mostly."
                      :where [?e :name ?n]
                      [?e :age ?a]]]
     (is (= (q map-query fred-julia-joe)
-           (q list-query fred-julia-joe)))))
+           (q list-query fred-julia-joe)))
+    (is (= (q map-query fred-julia-joe-index)
+           (q list-query fred-julia-joe-index)))))
 
 (comment
   (def story-clauses
