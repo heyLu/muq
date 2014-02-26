@@ -3,6 +3,7 @@
 
 Trying to understand datomic, mostly."
   (:require [clojure.set :as set]
+            [clojure.edn :as edn]
             [clojure.data.fressian :as fress]
             [clojure.java.io :as io])
   (:use [clojure.test :only (deftest is)]))
@@ -358,15 +359,15 @@ that means our index kind of works and that the cross-product is expensive.
 
 don't try the non-indexed version with high numbers unless you have a lot of time
 to spare."
-  [])
-(let [s1 (random-society 1000000 10000)
-      s1i (index-many nil s1)
-      query '{:find [?e ?o]
-              :where [[?e :likes ?o]
-                      [?o :likes ?e]]}]
-  (prn "go!")
-  ;(time (doall (q query s1)))
-  (time (doall (q query s1i))))
+  []
+  (let [s1 (random-society 1000000 10000)
+        s1i (index-many nil s1)
+        query '{:find [?e ?o]
+                :where [[?e :likes ?o]
+                        [?o :likes ?e]]}]
+    (prn "go!")
+    ;(time (doall (q query s1)))
+    (time (doall (q query s1i)))))
 
 (defn next-id-maker []
   (let [id-info (atom {:next-id 0
