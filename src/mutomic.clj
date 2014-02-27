@@ -216,15 +216,21 @@ Trying to understand datomic, mostly."
 (defn tuple-binding? [v]
   (and (vector? v) (every? variable? v)))
 
+(defn merge-if-consistent [env new-env]
+  (if (bindings-consistent? env new-env)
+    (conj env new-env)
+    nil))
+
 (defn bind-results [env pattern result]
-  (cond
-   (variable? pattern) (if-not (nil? result)
-                         (list (assoc env pattern result))
-                         '())
-   (tuple-binding? pattern) (if-not (some nil? result)
-                              (into env (map vector pattern result))
+  (map #(merge-if-consistent env %)
+       (cond
+        (variable? pattern) (if-not (nil? result)
+                              (list (assoc env pattern result))
                               '())
-   :else (throw (IllegalArgumentException. (str "Unsupported pattern " pattern)))))
+        (tuple-binding? pattern) (if-not (some nil? result)
+                                   (into env (map vector pattern result))
+                                   '())
+        :else (throw (IllegalArgumentException. (str "Unsupported pattern " pattern))))))
 
 (defn step-expression-clause [env clause]
   (let [[[f & args] & [pattern]] clause
@@ -253,9 +259,9 @@ Trying to understand datomic, mostly."
     nil))
 
 (defn step* [env clause datoms]
-  (if (expression-clause? clause)
-    (step-expression-clause env clause)
-    (filter identity
+  (filter identity
+          (if (expression-clause? clause)
+            (step-expression-clause env clause)
             (map (fn [datom]
                    (step-binding env clause datom))
                  datoms))))
