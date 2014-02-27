@@ -94,59 +94,6 @@ Trying to understand datomic, mostly."
 (defn variable? [v]
   (and (symbol? v) (.startsWith (name v) "?")))
 
-(defn join-vars [clauses]
-  (reduce (fn [vars [var count]]
-            (if (and (variable? var) (> count 1))
-              (conj vars var)
-              vars))
-          #{}
-          (frequencies (apply concat clauses))))
-
-(defn join-var-dependencies [join-vars clauses]
-  (reduce (fn [pairs [e & vs]]
-            (let [jvs (filter #(contains? join-vars %) vs)]
-              (if (and (contains? join-vars e) (seq jvs))
-                (reduce #(update-in %1 [e] conj %2) pairs jvs)
-                pairs)))
-          {}
-          clauses))
-
-;(join-var-dependencies (join-vars story-clauses) story-clauses)
-
-(defn root-vars [clauses]
-  (filter (fn [var]
-            (every? #(not (some #{var} (rest %))) clauses))
-          (join-vars clauses)))
-
-;(root-vars story-clauses)
-
-(defn root-var [clauses]
-  (or (first (root-vars clauses))
-      (let [join-var-deps (join-var-dependencies (join-vars clauses) clauses)]
-        (ffirst (sort-by (fn [[var deps]] (- (count deps))) join-var-deps)))))
-
-(root-var '[[?e :likes ?o] [?o :likes ?e]])
-
-(defn clause-dependencies [join-vars clause]
-  (let [[e? a? v?] (map #(if (symbol? %) %) clause)
-        {js true vs false} (group-by #(contains? join-vars %) (filter variable? clause))]
-    [js vs]))
-
-(clause-dependencies '#{?e ?tx ?user} '[?e :story/title ?v ?tx ?added])
-
-; *join vars* are variables that appear more than once?
-; only join vars have dependencies
-; or rather: dependencies between join vars are special
-
-(defn dependencies [clauses]
-  (join-var-dependencies (join-vars clauses) clauses))
-
-(defn clauses-with [var clauses]
-  (filter #(some #{var} %) clauses))
-
-(defn join-clauses-with [var clauses]
-  (filter #(= (first %) var) clauses))
-
 (defn replace-vars [env datom]
   (mapv #(or (env %) %) datom))
 
@@ -241,10 +188,6 @@ Trying to understand datomic, mostly."
       (flatten (map #(resolve-var* % (rest clauses) datoms) envs))
       nil)
     env))
-
-(defn resolve-var [var-name clauses datoms]
-  (let [clauses (clauses-with var-name clauses)]
-    (resolve-var* {} clauses datoms)))
 
 (defn sort-clauses [clauses]
   (let [{expr-clauses true, clauses false} (group-by expression-clause? clauses)]
