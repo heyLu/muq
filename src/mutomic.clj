@@ -322,8 +322,11 @@ Trying to understand datomic, mostly."
                     (partition 2 (partition-by keyword? query))))))
 
 (defn q [query db]
-  (let [{clauses :where} (normalize-query query)]
-    (query-naive clauses db)))
+  (let [{vars :find, clauses :where} (normalize-query query)]
+    (into #{}
+          (map (fn [env]
+                 (mapv env vars))
+               (query-naive clauses db)))))
 
 (deftest test-q
   (let [map-query '{:find [?e]
