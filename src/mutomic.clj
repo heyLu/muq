@@ -229,7 +229,10 @@ Trying to understand datomic, mostly."
 (defn step-expression-clause [env clause]
   (let [[[f & args] & [pattern]] clause
         args (map #(or (env %) %) args)
-        fn (if (ifn? f) f (resolve f))]
+        fn (cond
+            (symbol? f) (or (resolve f) (throw (IllegalArgumentException. (str "Can't resolve '" f "'"))))
+            (ifn? f) f
+            :else (throw (IllegalArgumentException. (str f " is not a function"))))]
     (if pattern
       (bind-results env pattern (apply fn args))
       (if (apply fn args)
@@ -240,7 +243,6 @@ Trying to understand datomic, mostly."
 (step-expression-clause '{?e " \t"} '[(str/blank? ?e)])
 (step-expression-clause '{?e "Fred"} '[(#{"Fred" "Julia"} ?e)])
 (step-expression-clause '{?e "Fred"} '[({"Fred" "lonely"} ?e) ?state])
-
 (step-expression-clause '{?e :fred} '[({:fred :lonely, :julia :fancy} ?e) ?mood])
 
 (defn step-binding [env clause datom]
