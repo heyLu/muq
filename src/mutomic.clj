@@ -242,8 +242,8 @@ Trying to understand datomic, mostly."
 (deftest test-step*
   (let [env '{?e :joe ?n "Joe"}]
     (is (= (step* env '[(= ?n "Joe")] fred-julia-joe)
-           env))
-    (is (nil? (step* env '[(= ?n "Trudy")] fred-julia-joe)))))
+           (list env)))
+    (is (empty? (step* env '[(= ?n "Trudy")] fred-julia-joe)))))
 
 (defn step-index [env clause idx]
   (let [[e a v] (replace-vars env clause)
