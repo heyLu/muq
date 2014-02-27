@@ -226,15 +226,15 @@ Trying to understand datomic, mostly."
                               '())
    :else (throw (IllegalArgumentException. (str "Unsupported pattern " pattern)))))
 
-(defmacro step-expression-clause [env clause]
-  `(let [[[f# & args#] & [pattern#]] ~clause
-         args# (map #(or (~env %) %) args#)
-         fn# (if (ifn? f#) f# (resolve f#))]
-     (if pattern#
-       (bind-results ~env pattern# (apply fn# args#))
-       (if (apply fn# args#)
-         (list ~env)
-         '()))))
+(defn step-expression-clause [env clause]
+  (let [[[f & args] & [pattern]] clause
+        args (map #(or (env %) %) args)
+        fn (if (ifn? f) f (resolve f))]
+    (if pattern
+      (bind-results env pattern (apply fn args))
+      (if (apply fn args)
+        (list env)
+        '()))))
 
 (step-expression-clause '{?e 3} '[(< ?e 4)])
 (step-expression-clause '{?e " \t"} '[(str/blank? ?e)])
