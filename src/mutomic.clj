@@ -232,11 +232,23 @@ Trying to understand datomic, mostly."
                                    '())
         :else (throw (IllegalArgumentException. (str "Unsupported pattern " pattern))))))
 
+(def resolve-internal
+  {'< (fn [o1 o2]
+        (< (compare o1 o2) 0))
+   '<= (fn [o1 o2]
+         (let [c (compare o1 o2)]
+           (or (< c 0) (= c 0))))
+   '> (fn [o1 o2]
+        (> (compare o1 o2) 0))
+   '>= (fn [o1 o2]
+        (let [c (compare o1 o2)]
+           (or (> c 0) (= c 0))))})
+
 (defn step-expression-clause [env clause]
   (let [[[f & args] & [pattern]] clause
         args (map #(or (env %) %) args)
         fn (cond
-            (symbol? f) (or (resolve f) (throw (IllegalArgumentException. (str "Can't resolve '" f "'"))))
+            (symbol? f) (or (resolve-internal f) (resolve f) (throw (IllegalArgumentException. (str "Can't resolve '" f "'"))))
             (ifn? f) f
             :else (throw (IllegalArgumentException. (str f " is not a function"))))]
     (if pattern
@@ -250,6 +262,7 @@ Trying to understand datomic, mostly."
 (step-expression-clause '{?e "Fred"} '[(#{"Fred" "Julia"} ?e)])
 (step-expression-clause '{?e "Fred"} '[({"Fred" "lonely"} ?e) ?state])
 (step-expression-clause '{?e :fred} '[({:fred :lonely, :julia :fancy} ?e) ?mood])
+(step-expression-clause {'?d1 #inst "2014-02-13" '?d2 #inst "2014-02-27"} '[(> ?d1 ?d2)])
 
 (defn step-binding [env clause datom]
   (if-let [new-env (clause-matches (replace-vars env clause) datom)]
