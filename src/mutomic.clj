@@ -421,7 +421,11 @@ to spare."
 
 (defn expand-tx-datum [tx-datum]
   (let [id (:db/id tx-datum)]
-    (map (fn [[k v]] [id k v]) (dissoc tx-datum :db/id))))
+    (mapcat (fn [[k v]]
+              (if (coll? v)
+                (map #(vector id k %) v)
+                [[id k v]]))
+            (dissoc tx-datum :db/id))))
 
 (defn expand-tx-data [tx-data]
   (mapcat (fn [tx-datum]
