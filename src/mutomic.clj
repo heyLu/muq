@@ -336,6 +336,16 @@ Trying to understand datomic, mostly."
 (defn db? [v]
   (and (symbol? v) (.startsWith (name v) "$")))
 
+(defn input-collection? [v]
+  (and (vector? v) (variable? (first v)) (= (second v) '...)))
+
+(defn coll-clauses [{in-vars :in} & inputs]
+  (map (fn [[var input]]
+         ;`[(~(set input) ~(first var))]
+         (vector (list (set input) (first var))))
+       (filter #(input-collection? (first %))
+               (map vector in-vars inputs))))
+
 (defn initial-environment [{in-vars :in} & inputs]
   (into {}
         (mapcat (fn [var input]
@@ -348,7 +358,8 @@ Trying to understand datomic, mostly."
 
 (defn q [query & inputs]
   (let [{vars :find, clauses :where, in-vars :in :as query} (normalize-query query)
-        initial-env (apply initial-environment query inputs)]
+        initial-env (apply initial-environment query inputs)
+        clauses (concat clauses (apply coll-clauses query inputs))]
     (into #{}
           (map (fn [env]
                  (mapv env vars))
