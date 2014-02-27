@@ -5,19 +5,12 @@ Trying to understand datomic, mostly."
   (:require [clojure.set :as set]
             [clojure.edn :as edn]
             [clojure.data.fressian :as fress]
-            [clojure.java.io :as io])
-  (:use [clojure.test :only (deftest is)]))
+            [clojure.java.io :as io]))
 
 (defn data-matches [a b]
   (if (symbol? a)
     {a b}
     (if (= a b) {} nil)))
-
-(deftest test-data-matches
-  (is (= (data-matches 'a 'b) '{a b}))
-  (is (= (data-matches 'a 3) '{a 3}))
-  (is (= (data-matches 3 3) {}))
-  (is (= (data-matches 3 4) nil)))
 
 (defn clause-matches [clause datom]
   (let [[ce ca cv] clause
@@ -29,24 +22,11 @@ Trying to understand datomic, mostly."
       (into {} (filter map? [me ma mv]))
       nil)))
 
-(deftest test-clause-matches
-  (is (= (clause-matches '[?e :name "Joe"] [:joe :name "Joe"])
-         '{?e :joe})))
-
 (defn bindings-consistent? [b1 b2]
   (let [common-keys (set/intersection (into #{} (keys b1)) (into #{} (keys b2)))]
     (every? (fn [k]
               (= (b1 k) (b2 k)))
             common-keys)))
-
-(let [clause1 '[?e :name "Joe"]
-      clause2 '[?e :name "Fred"]
-      clause3 '[?e :age 10]
-      joe [:joe :name "Joe"]
-      fred [:fred :name "Fred"]]
-  (vector ;bindings-consistent?
-    (clause-matches clause1 joe)
-    (clause-matches clause3 joe)))
 
 (def fred-julia-joe
   [[:fred :name "Fred"]
@@ -61,10 +41,6 @@ Trying to understand datomic, mostly."
    [:joe :likes :julia]
    [:joe :likes :flowers]
    [:joe :name "Joe"]])
-
-(deftest test-filter-clauses
-  (is (= (count (filter #(clause-matches '[?e :name ?n] %) fred-julia-joe))
-         3)))
 
 (defrecord Datum [e a v t]
   clojure.lang.Indexed
@@ -221,13 +197,6 @@ Trying to understand datomic, mostly."
         (list env)
         '()))))
 
-(step-expression-clause '{?e 3} '[(< ?e 4)])
-(step-expression-clause '{?e " \t"} '[(clojure.string/blank? ?e)])
-(step-expression-clause '{?e "Fred"} '[(#{"Fred" "Julia"} ?e)])
-(step-expression-clause '{?e "Fred"} '[({"Fred" "lonely"} ?e) ?state])
-(step-expression-clause '{?e :fred} '[({:fred :lonely, :julia :fancy} ?e) ?mood])
-(step-expression-clause {'?d1 #inst "2014-02-13" '?d2 #inst "2014-02-27"} '[(> ?d1 ?d2)])
-
 (defn step-binding [env clause datom]
   (if-let [new-env (clause-matches (replace-vars env clause) datom)]
     (if (bindings-consistent? env new-env)
@@ -242,12 +211,6 @@ Trying to understand datomic, mostly."
             (map (fn [datom]
                    (step-binding env clause datom))
                  datoms))))
-
-(deftest test-step*
-  (let [env '{?e :joe ?n "Joe"}]
-    (is (= (step* env '[(= ?n "Joe")] fred-julia-joe)
-           (list env)))
-    (is (empty? (step* env '[(= ?n "Trudy")] fred-julia-joe)))))
 
 (defn step-index [env clause idx]
   (let [[e a v] (replace-vars env clause)
@@ -279,11 +242,6 @@ Trying to understand datomic, mostly."
       nil)
     env))
 
-(deftest test-resolve-var*
-  (let [friends-clauses '[[?e :likes ?o] [?o :likes ?e]]
-        friends (resolve-var* {} friends-clauses fred-julia-joe)]
-    (is (= (count friends) 2))))
-
 (defn resolve-var [var-name clauses datoms]
   (let [clauses (clauses-with var-name clauses)]
     (resolve-var* {} clauses datoms)))
@@ -294,14 +252,6 @@ Trying to understand datomic, mostly."
 
 (defn query-naive [env clauses datoms]
   (resolve-var* env (sort-clauses clauses) datoms))
-
-(deftest test-query-naive
-  (let [friends-with-attrs '[[?e :name ?n]
-                             [?e :age ?a]
-                             [?e :likes ?o]
-                             [?o :likes ?e]]
-        friends (query-naive friends-with-attrs fred-julia-joe)]
-    (is (= (count friends) 2))))
 
 (defn normalize-query [query]
   (let [default {:in '[$]}]
@@ -354,18 +304,6 @@ Trying to understand datomic, mostly."
           (map (fn [env]
                  (mapv env vars))
                (query-naive initial-env clauses (first inputs))))))
-
-(deftest test-q
-  (let [map-query '{:find [?e]
-                    :where [[?e :name ?n]
-                            [?e :age ?a]]}
-        list-query '[:find ?e
-                     :where [?e :name ?n]
-                     [?e :age ?a]]]
-    (is (= (q map-query fred-julia-joe)
-           (q list-query fred-julia-joe)))
-    (is (= (q map-query fred-julia-joe-index)
-           (q list-query fred-julia-joe-index)))))
 
 (defn random-name []
   (let [alphabet "abcdefghijklmnopqrstuvwxyz"
