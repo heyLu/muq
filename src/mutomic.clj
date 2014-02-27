@@ -213,17 +213,35 @@ Trying to understand datomic, mostly."
 (defn expression-clause? [clause]
   (list? (first clause)))
 
+(defn tuple-binding? [v]
+  (and (vector? v) (every? variable? v)))
+
+(defn bind-results [env pattern result]
+  (cond
+   (variable? pattern) (if-not (nil? result)
+                         (list (assoc env pattern result))
+                         '())
+   (tuple-binding? pattern) (if-not (some nil? result)
+                              (into env (map vector pattern result))
+                              '())
+   :else (throw (IllegalArgumentException. (str "Unsupported pattern " pattern)))))
+
 (defmacro step-expression-clause [env clause]
-  `(let [[f# & args#] (first ~clause)
+  `(let [[[f# & args#] & [pattern#]] ~clause
          args# (map #(or (~env %) %) args#)
          fn# (if (ifn? f#) f# (resolve f#))]
-     (if (apply fn# args#)
-       (list ~env)
-       '())))
+     (if pattern#
+       (bind-results ~env pattern# (apply fn# args#))
+       (if (apply fn# args#)
+         (list ~env)
+         '()))))
 
 (step-expression-clause '{?e 3} '[(< ?e 4)])
 (step-expression-clause '{?e " \t"} '[(str/blank? ?e)])
 (step-expression-clause '{?e "Fred"} '[(#{"Fred" "Julia"} ?e)])
+(step-expression-clause '{?e "Fred"} '[({"Fred" "lonely"} ?e) ?state])
+
+(step-expression-clause '{?e :fred} '[({:fred :lonely, :julia :fancy} ?e) ?mood])
 
 (defn step-binding [env clause datom]
   (if-let [new-env (clause-matches (replace-vars env clause) datom)]
@@ -352,7 +370,7 @@ Trying to understand datomic, mostly."
                   (cond
                    (db? var) [[var input]]
                    (variable? var) [[var input]]
-                   (and (vector? var) (every? variable? var)) (map vector var input)))
+                   (tuple-binding? var) (map vector var input)))
                 in-vars
                 inputs)))
 
