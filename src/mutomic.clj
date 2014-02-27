@@ -504,10 +504,12 @@ to spare."
               [tx-datum]))
           tx-data))
 
+(defn read-edn [f]
+  (edn/read {:readers {'db/id (fn [[_ n]] (if n (next-id n) (next-id)))}}
+            (java.io.PushbackReader. (io/reader f))))
+
 (defn movie-data []
-  (let [movies-url "https://raw.github.com/jonase/learndatalogtoday/master/resources/db/data.edn"]
-    (edn/read {:readers {'db/id (fn [[_ n]] (next-id n))}}
-              (java.io.PushbackReader. (io/reader movies-url)))))
+  (read-edn "https://raw.github.com/jonase/learndatalogtoday/master/resources/db/data.edn"))
 
 (comment
   (def story-clauses
