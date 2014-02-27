@@ -354,14 +354,23 @@ Trying to understand datomic, mostly."
 (defn db? [v]
   (and (symbol? v) (.startsWith (name v) "$")))
 
-(defn input-collection? [v]
+(defn collection-binding? [v]
   (and (vector? v) (variable? (first v)) (= (second v) '...)))
 
 (defn coll-clauses [{in-vars :in} & inputs]
   (map (fn [[var input]]
          ;`[(~(set input) ~(first var))]
          (vector (list (set input) (first var))))
-       (filter #(input-collection? (first %))
+       (filter #(collection-binding? (first %))
+               (map vector in-vars inputs))))
+
+(defn relation-binding? [v]
+  (and (vector? v) (vector? (first v))))
+
+(defn rel-clauses [{in-vars :in} & inputs]
+  (map (fn [[[[a b]] input]]
+         (vector (list (into {} input) a) b))
+       (filter #(relation-binding? (first %))
                (map vector in-vars inputs))))
 
 (defn initial-environment [{in-vars :in} & inputs]
@@ -377,7 +386,9 @@ Trying to understand datomic, mostly."
 (defn q [query & inputs]
   (let [{vars :find, clauses :where, in-vars :in :as query} (normalize-query query)
         initial-env (apply initial-environment query inputs)
-        clauses (concat clauses (apply coll-clauses query inputs))]
+        clauses (concat clauses
+                        (apply coll-clauses query inputs)
+                        (apply rel-clauses query inputs))]
     (into #{}
           (map (fn [env]
                  (mapv env vars))
