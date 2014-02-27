@@ -214,12 +214,15 @@ Trying to understand datomic, mostly."
   (list? (first clause)))
 
 (defmacro step-expression-clause [env clause]
-  `(let [f# (map #(or (~env %) %) (first ~clause))]
-     (if (eval f#)
+  `(let [[f# & args#] (first ~clause)
+         args# (map #(or (~env %) %) args#)
+         fn# (resolve f#)]
+     (if (apply fn# args#)
        (list ~env)
        '())))
 
 (step-expression-clause '{?e 3} '[(< ?e 4)])
+(step-expression-clause '{?e " \t"} '[(str/blank? ?e)])
 
 (defn step-binding [env clause datom]
   (if-let [new-env (clause-matches (replace-vars env clause) datom)]
