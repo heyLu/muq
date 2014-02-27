@@ -258,7 +258,7 @@ Trying to understand datomic, mostly."
         '()))))
 
 (step-expression-clause '{?e 3} '[(< ?e 4)])
-(step-expression-clause '{?e " \t"} '[(str/blank? ?e)])
+(step-expression-clause '{?e " \t"} '[(clojure.string/blank? ?e)])
 (step-expression-clause '{?e "Fred"} '[(#{"Fred" "Julia"} ?e)])
 (step-expression-clause '{?e "Fred"} '[({"Fred" "lonely"} ?e) ?state])
 (step-expression-clause '{?e :fred} '[({:fred :lonely, :julia :fancy} ?e) ?mood])
