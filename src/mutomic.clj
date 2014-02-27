@@ -303,8 +303,12 @@ Trying to understand datomic, mostly."
                      [?e :likes ?o]
                      [?o :likes ?e]] fred-julia-joe))
 
+(defn sort-clauses [clauses]
+  (let [{expr-clauses true, clauses false} (group-by expression-clause? clauses)]
+    (concat clauses expr-clauses)))
+
 (defn query-naive [clauses datoms]
-  (resolve-var* {} clauses datoms))
+  (resolve-var* {} (sort-clauses clauses) datoms))
 
 (deftest test-query-naive
   (let [friends-with-attrs '[[?e :name ?n]
