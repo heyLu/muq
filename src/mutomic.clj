@@ -308,8 +308,8 @@ Trying to understand datomic, mostly."
   (let [{expr-clauses true, clauses false} (group-by expression-clause? clauses)]
     (concat clauses expr-clauses)))
 
-(defn query-naive [clauses datoms]
-  (resolve-var* {} (sort-clauses clauses) datoms))
+(defn query-naive [env clauses datoms]
+  (resolve-var* env (sort-clauses clauses) datoms))
 
 (deftest test-query-naive
   (let [friends-with-attrs '[[?e :name ?n]
@@ -320,18 +320,39 @@ Trying to understand datomic, mostly."
     (is (= (count friends) 2))))
 
 (defn normalize-query [query]
-  (if (map? query)
-    query
-    (into {} (map (fn [[k v]]
-                      [(first k) (vec v)])
-                    (partition 2 (partition-by keyword? query))))))
+  (let [default {:in '[$]}]
+    (if (map? query)
+      (into default query)
+      (into default
+            (map (fn [[k v]]
+                   [(first k) (vec v)])
+                 (partition 2 (partition-by keyword? query)))))))
 
-(defn q [query db]
-  (let [{vars :find, clauses :where} (normalize-query query)]
+; possibilities for in-vars:
+; * provide an initial env, for vars in a collection we need to execute the query (count coll) times (oops)
+; * unify "artificially" by inserting conditional expression clauses:
+;     :in $ [?var ...] => [(#{?var ...})]
+
+(defn db? [v]
+  (and (symbol? v) (.startsWith (name v) "$")))
+
+(defn initial-environment [{in-vars :in} & inputs]
+  (into {}
+        (mapcat (fn [var input]
+                  (cond
+                   (db? var) [[var input]]
+                   (variable? var) [[var input]]
+                   (and (vector? var) (every? variable? var)) (map vector var input)))
+                in-vars
+                inputs)))
+
+(defn q [query & inputs]
+  (let [{vars :find, clauses :where, in-vars :in :as query} (normalize-query query)
+        initial-env (apply initial-environment query inputs)]
     (into #{}
           (map (fn [env]
                  (mapv env vars))
-               (query-naive clauses db)))))
+               (query-naive initial-env clauses (first inputs))))))
 
 (deftest test-q
   (let [map-query '{:find [?e]
