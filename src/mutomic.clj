@@ -115,42 +115,6 @@ Trying to understand datomic, mostly."
 
 ;(load! "fjj.idx.fsn")
 
-(comment
-  (defn merge-if-consistent [b1 b2]
-    (if (bindings-consistent? b1 b2)))
-
-  (defn clauses-match [clauses datoms]
-    (reduce (fn [bindings clause]
-              (let [new-bindings (clause-matches clause datom)]
-                (if bindings
-                  (if (and new-binding (bindings-consistent? bindings new-binding))
-                    (conj bindings new-binding)
-                    nil)
-                  nil)))
-            {}
-            clauses))
-
-  (clauses-match '[[?e :name "Joe"]
-                   [?e :age 10]
-                   [?e :likes :julia]]
-                 [:joe :name "Joe"])
-  ;=> {?e [[:name "Joe"] [:age 10] [:likes :julia]]}
-
-
-  '[[?j :name "Joe"]
-    [?j :friend ?p]
-    [?p :age ?a]
-    [(> ?a 10)]]
-
-  ;=> {?e [[:name "Joe"] [:friend ?p]]
-  ;    ?p [[:age ?a]]
-  ;    ?a [[(> 10)]]}
-  ; ?j -> ?p -> ?a
-  ; ?j => candidates for ?p
-  ; ?p => candidates for ?a
-  ; ?a => determines valid ?p and ?j
-  )
-
 (defn variable? [v]
   (and (symbol? v) (.startsWith (name v) "?")))
 
@@ -308,13 +272,6 @@ Trying to understand datomic, mostly."
 
 (into #{} (step {} '[?e :likes ?o] fred-julia-joe-index))
 
-; take one clause
-; match it against the datoms -> set of matches that bind the var
-; for each of those:
-;   take one clause and replace the bound vars in it
-;   match it against the datoms -> set of matches with possibly new bindings
-;   back to 'for each of those ...'
-
 (defn resolve-var* [env clauses datoms]
   (if (seq clauses)
     (if-let [envs (step env (first clauses) datoms)]
@@ -330,18 +287,6 @@ Trying to understand datomic, mostly."
 (defn resolve-var [var-name clauses datoms]
   (let [clauses (clauses-with var-name clauses)]
     (resolve-var* {} clauses datoms)))
-
-(comment
-  (resolve-var '?e '[[?e :name ?n] [?e :age ?a]] fred-julia-joe)
-
-  (resolve-var '?o '[[?e :likes ?o] [?o :likes ?e]] fred-julia-joe)
-
-  ; does the wrong thing, e.g doesn't collect :name and :age for ?e, too.
-  ; maybe this would make sense if we resolve ?e in a separate step?
-  (resolve-var '?o '[[?e :name ?n]
-                     [?e :age ?a]
-                     [?e :likes ?o]
-                     [?o :likes ?e]] fred-julia-joe))
 
 (defn sort-clauses [clauses]
   (let [{expr-clauses true, clauses false} (group-by expression-clause? clauses)]
@@ -366,11 +311,6 @@ Trying to understand datomic, mostly."
             (map (fn [[k v]]
                    [(first k) (vec v)])
                  (partition 2 (partition-by keyword? query)))))))
-
-; possibilities for in-vars:
-; * provide an initial env, for vars in a collection we need to execute the query (count coll) times (oops)
-; * unify "artificially" by inserting conditional expression clauses:
-;     :in $ [?var ...] => [(#{?var ...})]
 
 (defn db? [v]
   (and (symbol? v) (.startsWith (name v) "$")))
@@ -523,27 +463,3 @@ to spare."
 
 (defn movie-data []
   (read-edn "https://raw.github.com/jonase/learndatalogtoday/master/resources/db/data.edn"))
-
-(comment
-  (def story-clauses
-    '[[?e :story/title ?v ?tx ?added]
-      [?e :story/url ?url]
-      [?tx :source/user ?user]
-      [?tx :db/txInstant ?inst]
-      [?user :user/email ?email]])
-
-  ; ?e could depend on ?tx, but doesn't. order doesn't matter, so that can't determine it
-  ; either.
-  ; (result variables don't matter. removing some doesn't change the "shape" of the result.)
-  ; maybe knowledge of eav, could help? because we know that a `v` can be a reference
-  ; which might indicate that `e`s are more likely be non-dependent?
-  ; so maybe it's about vars that occur in the `e` position, but not in the `v` position?
-
-  (dependencies story-clauses)
-
-  ;=> {?e [?v ?tx ?added ?url]
-  ;    ?tx [?user ?inst]
-  ;    ?user [?email]}
-  ;
-  ; variables should only appear as keys if they occur more than once?
-  )
