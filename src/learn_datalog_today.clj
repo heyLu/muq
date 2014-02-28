@@ -1,4 +1,7 @@
 (ns learn-datalog-today
+  "Queries from the Learn Datalog Today tutorial.
+
+The original tutorial is aviallable at <http://www.learndatalogtoday.org>."
   (:require [clojure.set :as set]
             [datomic.api :as d]
             [mutomic :as mu]))
