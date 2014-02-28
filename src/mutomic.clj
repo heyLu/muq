@@ -21,13 +21,9 @@ Trying to understand datomic, mostly."
    :else nil))
 
 (defn clause-matches [clause datom]
-  (let [[ce ca cv] clause
-        [de da dv] datom
-        me (data-matches ce de)
-        ma (data-matches ca da)
-        mv (data-matches cv dv)]
-    (if (and me ma mv)
-      (into {} (filter map? [me ma mv]))
+  (let [ms (map data-matches clause datom)]
+    (if (every? identity ms)
+      (into {} (filter map? ms))
       nil)))
 
 (defn bindings-consistent? [b1 b2]
