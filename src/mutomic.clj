@@ -7,6 +7,8 @@ Trying to understand datomic, mostly."
             [clojure.data.fressian :as fress]
             [clojure.java.io :as io]))
 
+(defrecord Datum [e a v t])
+
 (defn variable? [v]
   (and (symbol? v) (.startsWith (name v) "?")))
 
@@ -21,7 +23,7 @@ Trying to understand datomic, mostly."
    :else nil))
 
 (defn clause-matches [clause datom]
-  (let [ms (map data-matches clause datom)]
+  (let [ms (map data-matches clause (if (instance? Datum datom) (vals datom) datom))]
     (if (every? identity ms)
       (into {} (filter map? ms))
       nil)))
@@ -45,15 +47,6 @@ Trying to understand datomic, mostly."
    [:joe :likes :julia]
    [:joe :likes :flowers]
    [:joe :name "Joe"]])
-
-(defrecord Datum [e a v t]
-  clojure.lang.Indexed
-  (nth [_ i] (case i 0 e 1 a 2 v 3 t
-               (throw (IndexOutOfBoundsException.))))
-  (nth [this i default]
-    (if (<= 0 i 3)
-      (nth this i)
-      default)))
 
 (defn index [idx datom]
   (let [[e a v t] datom
