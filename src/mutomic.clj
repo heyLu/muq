@@ -9,6 +9,9 @@ Trying to understand datomic, mostly."
 
 (defrecord Datum [e a v t])
 
+(defn db? [v]
+  (and (symbol? v) (.startsWith (name v) "$")))
+
 (defn variable? [v]
   (and (symbol? v) (.startsWith (name v) "?")))
 
@@ -167,28 +170,33 @@ Trying to understand datomic, mostly."
                         (datoms idx :eavt)))]
     (step* env clause (flatten-index datoms))))
 
-(defn step [env clause datoms]
-  (if (map? datoms)
-    (step-index env clause datoms)
-    (step* env clause datoms)))
+(defn step [env clause]
+  (let [db (first clause)
+        [clause datoms] (if (db? db)
+                          [(subvec clause 1) (env db)]
+                          [clause (env '$)])]
+    (if (map? datoms)
+      (step-index env clause datoms)
+      (step* env clause datoms))))
 
-(into #{} (step {} '[?e :likes ?o] fred-julia-joe))
+(into #{} (step {'$ fred-julia-joe} '[?e :likes ?o]))
 
-(into #{} (step {} '[?e :likes ?o] fred-julia-joe-index))
+(into #{} (step {'$ fred-julia-joe-index} '[?e :likes ?o]))
 
-(defn resolve-var* [env clauses datoms]
-  (if (seq clauses)
-    (if-let [envs (step env (first clauses) datoms)]
-      (flatten (map #(resolve-var* % (rest clauses) datoms) envs))
-      nil)
-    env))
+(defn resolve-var* [env clauses]
+  (flatten
+   (if (seq clauses)
+     (if-let [envs (step env (first clauses))]
+       (map #(resolve-var* % (rest clauses)) envs)
+       nil)
+     (list env))))
 
 (defn sort-clauses [clauses]
   (let [{expr-clauses true, clauses false} (group-by expression-clause? clauses)]
     (concat clauses expr-clauses)))
 
-(defn query-naive [env clauses datoms]
-  (resolve-var* env (sort-clauses clauses) datoms))
+(defn query-naive [env clauses]
+  (resolve-var* env (sort-clauses clauses)))
 
 (defn normalize-query [query]
   (let [default {:in '[$]}]
@@ -198,9 +206,6 @@ Trying to understand datomic, mostly."
             (map (fn [[k v]]
                    [(first k) (vec v)])
                  (partition 2 (partition-by keyword? query)))))))
-
-(defn db? [v]
-  (and (symbol? v) (.startsWith (name v) "$")))
 
 (defn collection-binding? [v]
   (and (vector? v) (variable? (first v)) (= (second v) '...)))
@@ -240,7 +245,7 @@ Trying to understand datomic, mostly."
     (into #{}
           (map (fn [env]
                  (mapv env vars))
-               (query-naive initial-env clauses (first inputs))))))
+               (query-naive initial-env clauses)))))
 
 (defn random-name []
   (let [alphabet "abcdefghijklmnopqrstuvwxyz"

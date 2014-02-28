@@ -40,7 +40,7 @@
 
 (deftest test-resolve-var*
   (let [friends-clauses '[[?e :likes ?o] [?o :likes ?e]]
-        friends (resolve-var* {} friends-clauses fred-julia-joe)]
+        friends (resolve-var* {'$ fred-julia-joe} friends-clauses)]
     (is (= (count friends) 2))))
 
 (deftest test-query-naive
@@ -48,7 +48,7 @@
                              [?e :age ?a]
                              [?e :likes ?o]
                              [?o :likes ?e]]
-        friends (query-naive {} friends-with-attrs fred-julia-joe)]
+        friends (query-naive {'$ fred-julia-joe} friends-with-attrs)]
     (is (= (count friends) 2))))
 
 (deftest test-q
