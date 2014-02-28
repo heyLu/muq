@@ -39,6 +39,7 @@ Trying to understand datomic, mostly."
 
 (def fred-julia-joe
   [[:fred :name "Fred"]
+   [:fred :is "awkward"]
    [:julia :name "Julia"]
    [:julia :is "awesome"]
    [:julia :is "fun"]
