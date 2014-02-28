@@ -220,11 +220,22 @@ Trying to understand datomic, mostly."
 (defn relation-binding? [v]
   (and (vector? v) (vector? (first v))))
 
-(defn rel-clauses [{in-vars :in} & inputs]
-  (map (fn [[[[a b]] input]]
-         (vector (list (into {} input) a) b))
-       (filter #(relation-binding? (first %))
-               (map vector in-vars inputs))))
+(defn relation [[[[var-a var-b]] input]]
+  (let [db (gensym "$rel")
+        rel (gensym "rel")
+        env {db (map (fn [[in-a in-b]]
+                       [in-a rel in-b])
+                     input)}
+        clause [db var-a rel var-b]]
+    [env clause]))
+
+(defn relations [{in-vars :in} & inputs]
+  (let [rels (filter #(relation-binding? (first %))
+                     (map vector in-vars inputs))]
+    (reduce (fn [[envs clauses] [env clause]]
+              [(conj envs env) (conj clauses clause)])
+            [{} []]
+            (map relation rels))))
 
 (defn initial-environment [{in-vars :in} & inputs]
   (into {}
@@ -238,10 +249,11 @@ Trying to understand datomic, mostly."
 
 (defn q [query & inputs]
   (let [{vars :find, clauses :where, in-vars :in :as query} (normalize-query query)
-        initial-env (apply initial-environment query inputs)
+        [rel-envs rel-clauses] (apply relations query inputs)
+        initial-env (into (apply initial-environment query inputs) rel-envs)
         clauses (concat clauses
                         (apply coll-clauses query inputs)
-                        (apply rel-clauses query inputs))]
+                        rel-clauses)]
     (into #{}
           (map (fn [env]
                  (mapv env vars))
