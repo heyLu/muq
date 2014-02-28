@@ -3,8 +3,8 @@
         [mutomic]))
 
 (deftest test-data-matches
-  (is (= (data-matches 'a 'b) '{a b}))
-  (is (= (data-matches 'a 3) '{a 3}))
+  (is (= (data-matches '?a 'b) '{?a b}))
+  (is (= (data-matches '?a 3) '{?a 3}))
   (is (= (data-matches 3 3) {}))
   (is (= (data-matches 3 4) nil)))
 
