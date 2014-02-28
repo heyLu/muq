@@ -184,12 +184,43 @@ Trying to understand datomic, mostly."
 
 (into #{} (step {} '[?e :likes ?o] {'$ fred-julia-joe-index}))
 
+(defn rule-name [rule-def]
+  (ffirst rule-def))
+
+(defn remap-keys [m key-map]
+  (let [m (select-keys m (keys key-map))]
+    (into {} (map vector (map key-map (keys m)) (vals m)))))
+
+; rules are like a separate query with an initial env given?
+; what does "or" mean? do we need to keep track whether one rule
+; failed earlier and then retry with the potential alternatives?
+; gets much trickier because the "rule env" is different from the
+; query env, e.g. bindings from rule env must be translated from
+; and to the query end.
+(defn resolve-rule [env rule-call dbs]
+  (let [[name & params] rule-call
+        defs (filter #(= (rule-name %) name) (dbs '%))
+        [_ & rparams] (ffirst defs)
+        {rule-env false rule->query true} (group-by #(-> % second variable?) (map vector rparams params))
+        [rule-env rule->query] (map #(into {} %) [rule-env rule->query])]
+    (flatten (map (fn [rdef]
+                    (let [[_ & clauses] rdef
+                          results (resolve-var* rule-env clauses dbs)]
+                      (filter identity
+                              (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results))))
+                  defs))))
+
+(defn rule? [clause]
+  (list? clause))
+
 (defn resolve-var* [env clauses dbs]
   (flatten
    (if (seq clauses)
-     (if-let [envs (step env (first clauses) dbs)]
-       (map #(resolve-var* % (rest clauses) dbs) envs)
-       nil)
+     (let [clause (first clauses)
+           step-fn (if (rule? clause) resolve-rule step)]
+       (if-let [envs (step-fn env clause dbs)]
+         (map #(resolve-var* % (rest clauses) dbs) envs)
+         nil))
      (list env))))
 
 (defn sort-clauses [clauses]
@@ -250,7 +281,9 @@ Trying to understand datomic, mostly."
 (defn q [query & inputs]
   (let [{vars :find, clauses :where, in-vars :in :as query} (normalize-query query)
         initial-env (apply initial-environment query inputs)
-        dbs (into {} (filter #(db? (first %)) (map vector in-vars inputs)))
+        dbs (into {} (filter (fn [[v _]]
+                               (or (db? v) (= '% v)))
+                             (map vector in-vars inputs)))
         [rel-envs rel-clauses] (apply relations query inputs)
         clauses (concat clauses
                         (apply coll-clauses query inputs)
