@@ -170,24 +170,24 @@ Trying to understand datomic, mostly."
                         (datoms idx :eavt)))]
     (step* env clause (flatten-index datoms))))
 
-(defn step [env clause]
+(defn step [env clause dbs]
   (let [db (first clause)
         [clause datoms] (if (db? db)
-                          [(subvec clause 1) (env db)]
-                          [clause (env '$)])]
+                          [(subvec clause 1) (dbs db)]
+                          [clause (dbs '$)])]
     (if (map? datoms)
       (step-index env clause datoms)
       (step* env clause datoms))))
 
-(into #{} (step {'$ fred-julia-joe} '[?e :likes ?o]))
+(into #{} (step {} '[?e :likes ?o] {'$ fred-julia-joe}))
 
-(into #{} (step {'$ fred-julia-joe-index} '[?e :likes ?o]))
+(into #{} (step {} '[?e :likes ?o] {'$ fred-julia-joe-index}))
 
-(defn resolve-var* [env clauses]
+(defn resolve-var* [env clauses dbs]
   (flatten
    (if (seq clauses)
-     (if-let [envs (step env (first clauses))]
-       (map #(resolve-var* % (rest clauses)) envs)
+     (if-let [envs (step env (first clauses) dbs)]
+       (map #(resolve-var* % (rest clauses) dbs) envs)
        nil)
      (list env))))
 
@@ -195,8 +195,8 @@ Trying to understand datomic, mostly."
   (let [{expr-clauses true, clauses false} (group-by expression-clause? clauses)]
     (concat clauses expr-clauses)))
 
-(defn query-naive [env clauses]
-  (resolve-var* env (sort-clauses clauses)))
+(defn query-naive [env clauses dbs]
+  (resolve-var* env (sort-clauses clauses) dbs))
 
 (defn normalize-query [query]
   (let [default {:in '[$]}]
@@ -241,7 +241,6 @@ Trying to understand datomic, mostly."
   (into {}
         (mapcat (fn [var input]
                   (cond
-                   (db? var) [[var input]]
                    (variable? var) [[var input]]
                    (tuple-binding? var) (map vector var input)))
                 in-vars
@@ -249,15 +248,16 @@ Trying to understand datomic, mostly."
 
 (defn q [query & inputs]
   (let [{vars :find, clauses :where, in-vars :in :as query} (normalize-query query)
+        initial-env (apply initial-environment query inputs)
+        dbs (into {} (filter #(db? (first %)) (map vector in-vars inputs)))
         [rel-envs rel-clauses] (apply relations query inputs)
-        initial-env (into (apply initial-environment query inputs) rel-envs)
         clauses (concat clauses
                         (apply coll-clauses query inputs)
                         rel-clauses)]
     (into #{}
           (map (fn [env]
                  (mapv env vars))
-               (query-naive initial-env clauses)))))
+               (query-naive initial-env clauses (conj dbs rel-envs))))))
 
 (defn random-name []
   (let [alphabet "abcdefghijklmnopqrstuvwxyz"
