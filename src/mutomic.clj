@@ -7,10 +7,18 @@ Trying to understand datomic, mostly."
             [clojure.data.fressian :as fress]
             [clojure.java.io :as io]))
 
+(defn variable? [v]
+  (and (symbol? v) (.startsWith (name v) "?")))
+
+(defn wildcard? [v]
+  (= '_ v))
+
 (defn data-matches [a b]
-  (if (symbol? a)
-    {a b}
-    (if (= a b) {} nil)))
+  (cond
+   (variable? a) {a b}
+   (wildcard? a) {}
+   (= a b) {}
+   :else nil))
 
 (defn clause-matches [clause datom]
   (let [[ce ca cv] clause
@@ -90,9 +98,6 @@ Trying to understand datomic, mostly."
     (fress/read-object r)))
 
 ;(load! "fjj.idx.fsn")
-
-(defn variable? [v]
-  (and (symbol? v) (.startsWith (name v) "?")))
 
 (defn replace-vars [env datom]
   (mapv #(or (env %) %) datom))
