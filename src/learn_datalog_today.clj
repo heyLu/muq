@@ -247,10 +247,18 @@
    [ch6-younger-than "Bruce Willis" #inst "2013-08-02"]
    ch6-birthday-paradox])
 
-;; # 7 Aggregates
+;; # Aggregates
 
 ;(def ch7-number-of-movies)
 ;(def ch7-methusalem)
 ;(def ch7-avg-actor-ratings)
 
-;; # 8 Rules
+;; # Rules
+
+;; # Fin
+
+(defn compare-all []
+  (doseq [ch [ch0 ch1 ch2 ch3 ch4 ch5 ch6]]
+    (compare-chapter ch)))
+
+;(compare-all)
