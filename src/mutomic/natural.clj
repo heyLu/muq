@@ -26,10 +26,12 @@
     clauses
     (map #(get % '?who) (resolve-var* {} clauses {'$ fred-julia-joe}))))
 
-(nq "Wer ist awkward")
+(comment
+  (nq "Wer ist awkward")
 
-(nq "Wer mag Julia")
-;=> ["Wer" "mag" "Fred" "?"] -> [["Wer" :subject] ["mag" :predicate] ["Fred" :object]]
+  (nq "Wer mag Julia")
+  ;=> ["Wer" "mag" "Fred" "?"] -> [["Wer" :subject] ["mag" :predicate] ["Fred" :object]]
+)
 
 (defn mq [question]
   (let [matchers {#"Wer mag (\w+)" (fn [name]
@@ -58,7 +60,8 @@
         :where clauses}
        fred-julia-joe)))
 
-(mq "Wer mag Joe?")
-(mq "Wen mag Joe?")
-(mq "Wer ist älter als 3?")
-(mq "Wer ist älter als Julia?")
+(comment
+  (mq "Wer mag Joe?")
+  (mq "Wen mag Joe?")
+  (mq "Wer ist älter als 3?")
+  (mq "Wer ist älter als Julia?"))
