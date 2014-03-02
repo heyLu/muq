@@ -6,17 +6,23 @@
   (:import [java.util Date]
            [java.net URI]))
 
-(def db-url "datomic:free://localhost:4334/rikai")
+(def db-url "datomic:free://localhost:4344/rikai")
 
-(def conn
-  (do
-    (d/create-database db-url)
-    (d/connect db-url)))
+(declare conn)
 
 (defn db []
   (d/db conn))
 
-(attr/init conn)
+
+(defn setup! []
+  (def conn
+    (do
+      (d/create-database db-url)
+      (d/connect db-url)))
+
+  (attr/init conn))
+
+(comment
 
 (d/transact conn
   [{:db/id (d/tempid :db.part/user -1)
@@ -156,3 +162,5 @@ tomorrow? probably finally starting on a real prototype?"
           {:url (URI. "https://www.wg-gesucht.de/4291948.html")})])
 
 ;(defentity fn-name [x y z] body) ;=> (defn fn-name [x y z & [more-attrs]] (merge body more-attrs {:db/id ...}))
+
+)
