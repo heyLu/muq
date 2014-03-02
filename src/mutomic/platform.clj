@@ -7,8 +7,14 @@
 (defn starts-with [string start]
   (.startsWith string start))
 
+(defn upper-case? [c]
+  (Character/isUpperCase c))
+
 (defn to-upper-case [string]
   (.toUpperCase string))
+
+(defn parse-int [string]
+  (Integer/parseInt string))
 
 (defn illegal-argument [msg]
   (throw (IllegalArgumentException. msg)))

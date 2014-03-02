@@ -6,8 +6,14 @@
 (defn starts-with [string start]
   (.startsWith string start))
 
+(defn upper-case? [c]
+  (= c (.toUpper c)))
+
 (defn to-upper-case [string]
   (.toUpperCase string))
+
+(defn parse-int [string]
+  (js/parseInt string))
 
 (defn illegal-argument [msg]
   (throw (js/Error. (str "Illegal argument: " msg))))
