@@ -36,23 +36,23 @@
 )
 
 (defn ^:export mq [question]
-  (let [matchers {#"Wer mag (\w+)" (fn [name]
-                                     [['?who :likes '?p]
-                                      ['?p :name name]])
-                  #"Wer ist (\w+)" (fn [trait]
-                                     [['?who :is trait]])
-                  #"Wen mag (\w+)" (fn [name]
-                                     [['?p1 :name name]
-                                      ['?p1 :likes '?p2]
-                                      ['?p2 :name '?who]])
-                  #"Wer ist älter als (\d+)" (fn [age-str]
-                                               [['?who :age '?age]
-                                                [(list '> '?age (p/parse-int age-str))]])
-                  #"Wer ist älter als (\w+)" (fn [name]
-                                               [['?p :name name]
-                                                ['?p :age '?page]
-                                                ['?who :age '?age]
-                                                ['(> ?age ?page)]])}
+  (let [matchers [[#"Wer mag (\w+)" (fn [name]
+                                      [['?who :likes '?p]
+                                       ['?p :name name]])]
+                  [#"Wer ist (\w+)" (fn [trait]
+                                      [['?who :is trait]])]
+                  [#"Wen mag (\w+)" (fn [name]
+                                      [['?p1 :name name]
+                                       ['?p1 :likes '?p2]
+                                       ['?p2 :name '?who]])]
+                  [#"Wer ist älter als (\d+)" (fn [age-str]
+                                                [['?who :age '?age]
+                                                 [(list '> '?age (p/parse-int age-str))]])]
+                  [#"Wer ist älter als (\w+)" (fn [name]
+                                                [['?p :name name]
+                                                 ['?p :age '?page]
+                                                 ['?who :age '?age]
+                                                 ['(> ?age ?page)]])]]
         [re f] (first
                 (filter (fn [[re _]]
                           (re-find re question))
