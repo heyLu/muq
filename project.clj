@@ -12,12 +12,11 @@
             [lein-cljsbuild "1.0.2"]]
   :ring {:handler rikai.service/app}
   :cljsbuild {
-    :crossovers [mutomic]
-    :crossover-path "target/crossover-cljs"
-    :builds [{:source-paths ["src-cljs"]
+    :builds [{:id "default"
+              :source-paths ["src"]
               :compiler {:output-to "target/mutomic.js"}}
              {:id "optimized"
-              :source-paths ["src-cljs"]
+              :source-paths ["src"]
               :compiler {:output-to "target/mutomic.min.js"
                          :source-map "target/mutomic.min.js.map"
                          :externs ["externs.js"]
