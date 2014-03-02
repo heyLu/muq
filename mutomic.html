@@ -6,6 +6,18 @@
     </head>
 
     <body>
+        <input id="question" />
+        <pre id="answer">
+        </pre>
+
         <script src="target/mutomic.js"></script>
+        <script>
+          var questionEl = document.getElementById("question");
+          var answerEl = document.getElementById("answer");
+
+          questionEl.onchange = function() {
+            answerEl.textContent = cljs.core.pr_str(mutomic.natural.mq(questionEl.value));
+          }
+        </script>
     </body>
 </html>
