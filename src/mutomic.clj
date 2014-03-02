@@ -3,17 +3,15 @@
 
 Trying to understand datomic, mostly."
   (:require [clojure.set :as set]
-            [clojure.edn :as edn]
-            [clojure.data.fressian :as fress]
-            [clojure.java.io :as io]))
+            [mutomic.platform :as p]))
 
 (defrecord Datum [e a v t])
 
 (defn db? [v]
-  (and (symbol? v) (.startsWith (name v) "$")))
+  (and (symbol? v) (p/starts-with (name v) "$")))
 
 (defn variable? [v]
-  (and (symbol? v) (.startsWith (name v) "?")))
+  (and (symbol? v) (p/starts-with (name v) "?")))
 
 (defn wildcard? [v]
   (= '_ v))
@@ -80,18 +78,6 @@ Trying to understand datomic, mostly."
                [k (-> (flatten-index vt) first :v)])
              (datoms idx :eavt eid))))
 
-(defn save! [f idx]
-  (with-open [w (fress/create-writer (io/output-stream f))]
-    (fress/write-object w idx)))
-
-;(save! (java.io.File. "fjj.idx.fsn") fred-julia-joe-index)
-
-(defn load! [f]
-  (with-open [r (fress/create-reader (io/input-stream f))]
-    (fress/read-object r)))
-
-;(load! "fjj.idx.fsn")
-
 (defn replace-vars [env datom]
   (mapv #(or (env %) %) datom))
 
@@ -115,7 +101,7 @@ Trying to understand datomic, mostly."
         (tuple-binding? pattern) (if-not (some nil? result)
                                    (into env (map vector pattern result))
                                    '())
-        :else (throw (IllegalArgumentException. (str "Unsupported pattern " pattern))))))
+        :else (p/illegal-argument (str "Unsupported pattern " pattern)))))
 
 (def resolve-internal
   {'< (fn [o1 o2]
@@ -133,9 +119,9 @@ Trying to understand datomic, mostly."
   (let [[[f & args] & [pattern]] clause
         args (map #(or (env %) %) args)
         fn (cond
-            (symbol? f) (or (resolve-internal f) (resolve f) (throw (IllegalArgumentException. (str "Can't resolve '" f "'"))))
+            (symbol? f) (or (resolve-internal f) (p/resolve f) (p/illegal-argument (str "Can't resolve '" f "'")))
             (ifn? f) f
-            :else (throw (IllegalArgumentException. (str f " is not a function"))))]
+            :else (p/illegal-argument (str f " is not a function")))]
     (if pattern
       (bind-results env pattern (apply fn args))
       (if (apply fn args)
@@ -190,6 +176,8 @@ Trying to understand datomic, mostly."
 (defn remap-keys [m key-map]
   (let [m (select-keys m (keys key-map))]
     (into {} (map vector (map key-map (keys m)) (vals m)))))
+
+(declare resolve-var*)
 
 ; rules are like a separate query with an initial env given?
 ; what does "or" mean? do we need to keep track whether one rule
@@ -296,7 +284,7 @@ Trying to understand datomic, mostly."
 (defn random-name []
   (let [alphabet "abcdefghijklmnopqrstuvwxyz"
         vowels "aeiou"]
-    (apply str (concat [(.toUpperCase (str (rand-nth alphabet)))]
+    (apply str (concat [(p/to-upper-case (str (rand-nth alphabet)))]
                        (map (fn [_]
                               (if (< (rand) 0.3)
                                 (rand-nth vowels)
@@ -384,8 +372,8 @@ to spare."
           tx-data))
 
 (defn read-edn [f]
-  (edn/read {:readers {'db/id (fn [[_ n]] (if n (next-id n) (next-id)))}}
-            (java.io.PushbackReader. (io/reader f))))
+  (p/read-edn {'db/id (fn [[_ n]] (if n (next-id n) (next-id)))}
+              f))
 
 (defn movie-data []
   (read-edn "https://raw.github.com/jonase/learndatalogtoday/master/resources/db/data.edn"))
