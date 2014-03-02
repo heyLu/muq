@@ -52,7 +52,7 @@
                                                [['?p :name name]
                                                 ['?p :age '?page]
                                                 ['?who :age '?age]
-                                                ['(> ?page ?age)]])}
+                                                ['(> ?age ?page)]])}
         [re f] (first
                 (filter (fn [[re _]]
                           (re-find re question))
