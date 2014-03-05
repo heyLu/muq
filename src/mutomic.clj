@@ -189,7 +189,7 @@ Trying to understand datomic, mostly."
   (let [[name & params] rule-call
         defs (filter #(= (rule-name %) name) (dbs '%))
         [_ & rparams] (ffirst defs)
-        {rule-env false rule->query true} (group-by #(-> % second variable?) (map vector rparams params))
+        {rule-env false rule->query true} (group-by #(-> % second variable?) (map vector rparams (replace-vars env params)))
         [rule-env rule->query] (map #(into {} %) [rule-env rule->query])]
     (flatten (map (fn [rdef]
                     (let [[_ & clauses] rdef
