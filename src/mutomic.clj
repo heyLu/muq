@@ -177,6 +177,14 @@ Trying to understand datomic, mostly."
   (let [m (select-keys m (keys key-map))]
     (into {} (map vector (map key-map (keys m)) (vals m)))))
 
+(defn reduce-until [pred f val coll]
+  (if (seq coll)
+    (let [r (f val (first coll))]
+      (if (pred val r)
+        r
+        (recur pred f r (rest coll))))
+    val))
+
 (declare resolve-var*)
 
 ; rules are like a separate query with an initial env given?
@@ -191,12 +199,16 @@ Trying to understand datomic, mostly."
         [_ & rparams] (ffirst defs)
         {rule-env false rule->query true} (group-by #(-> % second variable?) (map vector rparams (replace-vars env params)))
         [rule-env rule->query] (map #(into {} %) [rule-env rule->query])]
-    (flatten (map (fn [rdef]
-                    (let [[_ & clauses] rdef
-                          results (resolve-var* rule-env clauses dbs)]
-                      (filter identity
-                              (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results))))
-                  defs))))
+    (reduce-until =
+                  #(into %1 @%2)
+                  #{}
+                  (map (fn [rdef]
+                         (delay
+                          (let [[_ & clauses] rdef
+                                results (resolve-var* rule-env clauses dbs)]
+                            (filter identity
+                                    (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results)))))
+                       defs))))
 
 (defn rule? [clause]
   (list? clause))
