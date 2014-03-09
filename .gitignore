@@ -2,6 +2,7 @@
 /.db
 
 .nrepl-port
+.lein*
 
 *.csv
 *.xml
