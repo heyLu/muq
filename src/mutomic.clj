@@ -157,7 +157,7 @@ Trying to understand datomic, mostly."
                         (datoms idx :eavt)))]
     (step* env clause (flatten-index datoms))))
 
-(defn step [env clause dbs]
+(defn step [env clause dbs & _]
   (let [db (first clause)
         [clause datoms] (if (db? db)
                           [(subvec clause 1) (dbs db)]
@@ -193,33 +193,35 @@ Trying to understand datomic, mostly."
 ; gets much trickier because the "rule env" is different from the
 ; query env, e.g. bindings from rule env must be translated from
 ; and to the query end.
-(defn resolve-rule [env rule-call dbs]
+(defn resolve-rule [env rule-call dbs state]
   (let [[name & params] rule-call
         defs (filter #(= (rule-name %) name) (dbs '%))
         [_ & rparams] (ffirst defs)
         {rule-env false rule->query true} (group-by #(-> % second variable?) (map vector rparams (replace-vars env params)))
-        [rule-env rule->query] (map #(into {} %) [rule-env rule->query])]
-    (reduce-until =
-                  #(into %1 @%2)
-                  #{}
-                  (map (fn [rdef]
-                         (delay
-                          (let [[_ & clauses] rdef
-                                results (resolve-var* rule-env clauses dbs)]
-                            (filter identity
-                                    (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results)))))
-                       defs))))
+        [rule-env rule->query] (map #(into {} %) [rule-env rule->query])
+        new-state (conj state [name (replace-vars env params)])]
+    (if (contains? state [name (replace-vars env params)])
+      #{}
+      (reduce-until =
+                    into
+                    #{}
+                    (map (fn [rdef]
+                           (let [[_ & clauses] rdef
+                                 results (resolve-var* rule-env clauses dbs new-state)]
+                             (filter identity
+                                     (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results))))
+                         defs)))))
 
 (defn rule? [clause]
   (list? clause))
 
-(defn resolve-var* [env clauses dbs]
+(defn resolve-var* [env clauses dbs state]
   (flatten
    (if (seq clauses)
      (let [clause (first clauses)
            step-fn (if (rule? clause) resolve-rule step)]
-       (if-let [envs (step-fn env clause dbs)]
-         (map #(resolve-var* % (rest clauses) dbs) envs)
+       (if-let [envs (step-fn env clause dbs state)]
+         (map #(resolve-var* % (rest clauses) dbs state) envs)
          nil))
      (list env))))
 
@@ -228,7 +230,7 @@ Trying to understand datomic, mostly."
     (concat clauses expr-clauses)))
 
 (defn query-naive [env clauses dbs]
-  (resolve-var* env (sort-clauses clauses) dbs))
+  (resolve-var* env (sort-clauses clauses) dbs #{}))
 
 (defn normalize-query [query]
   (let [default {:in '[$]}]
