@@ -307,16 +307,28 @@ the order of the clauses after that. (it's really quite a bit confusing...)"
     [(colleagues ?p1 ?p2)
      [?m :movie/cast ?p1]
      [?m :movie/director ?p2]]
-    ; results in an infinite loop
     [(colleagues ?p1 ?p2) (colleagues ?p2 ?p1)]])
 
-;(def ch8-sequels)
+(def ch8-sequels
+  '{:find [?sequel]
+    :in [$ % ?title]
+    :where [[?m :movie/title ?title]
+            (sequels ?m ?s)
+            [?s :movie/title ?sequel]]})
+
+(def ch8-sequels-rule
+  '[[(sequels ?m1 ?m2)
+     [?m1 :movie/sequel ?m2]]
+    [(sequels ?m1 ?m2)
+     [?m1 :movie/sequel ?m]
+     (sequels ?m ?m2)]])
 
 (def ch8
   [[ch8-movie-year '[[(movie-year ?title ?year)
                       [?m :movie/title ?title]
                       [?m :movie/year ?year]]]]
-   [ch8-colleagues "Sigourney Weaver" ch8-colleagues-rule]])
+   [ch8-colleagues "Sigourney Weaver" ch8-colleagues-rule]
+   [ch8-sequels ch8-sequels-rule "Mad Max"]])
 
 ;; # Fin
 
