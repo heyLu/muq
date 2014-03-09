@@ -26,7 +26,7 @@
                            words)
         clauses (flatten-query nested-query)]
     clauses
-    (map #(get % '?who) (mu/resolve-var* {} clauses {'$ mu/fred-julia-joe}))))
+    (map #(get % '?who) (mu/resolve-var* {} clauses {'$ mu/fred-julia-joe} #{}))))
 
 (comment
   (nq "Wer ist awkward")
