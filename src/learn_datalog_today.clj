@@ -287,10 +287,41 @@ the order of the clauses after that. (it's really quite a bit confusing...)"
 
 ;; # Rules
 
+(def ch8-movie-year
+  '{:find [?title]
+    :in [$ %]
+    :where [(movie-year ?title 1991)]})
+
+(def ch8-colleagues
+  '{:find [?colleague]
+    :in [$ ?name %]
+    :where [[?p1 :person/name ?name]
+            (colleagues ?p1 ?p2)
+            [?p2 :person/name ?colleague]]})
+
+(def ch8-colleagues-rule
+  '[[(colleagues ?p1 ?p2)
+     [?m :movie/cast ?p1]
+     [?m :movie/cast ?p2]
+     [(not= ?p1 ?p2)]]
+    [(colleagues ?p1 ?p2)
+     [?m :movie/cast ?p1]
+     [?m :movie/director ?p2]]
+    ; results in an infinite loop
+    [(colleagues ?p1 ?p2) (colleagues ?p2 ?p1)]])
+
+;(def ch8-sequels)
+
+(def ch8
+  [[ch8-movie-year '[[(movie-year ?title ?year)
+                      [?m :movie/title ?title]
+                      [?m :movie/year ?year]]]]
+   [ch8-colleagues "Sigourney Weaver" ch8-colleagues-rule]])
+
 ;; # Fin
 
 (defn compare-all []
-  (doseq [ch [ch0 ch1 ch2 ch3 ch4 ch5 ch6]]
+  (doseq [ch [ch0 ch1 ch2 ch3 ch4 ch5 ch6 ch8]]
     (compare-chapter ch)))
 
 ;(compare-all)
