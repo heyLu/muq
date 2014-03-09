@@ -245,12 +245,7 @@ The original tutorial is aviallable at <http://www.learndatalogtoday.org>."
             [(learn-datalog-today/same-day? ?d1 ?d2)]
             [(< ?n1 ?n2)]]})
 
-(defn birthday-benchmark
-  "surprisingly we achieve similar speeds when not assembling the results in a set.
-
-so maybe we should try doing that while assembling the results and only optimize
-the order of the clauses after that. (it's really quite a bit confusing...)"
-  []
+(defn birthday-benchmark []
   (let [birthday-opt '[[?p1 :person/born ?d1]
                        [?p2 :person/born ?d2]
                        [(learn-datalog-today/same-day? ?d1 ?d2)]
@@ -263,16 +258,17 @@ the order of the clauses after that. (it's really quite a bit confusing...)"
     (prn "datomic with original order")
     (time (d/q ch6-birthday-paradox movies))
     (prn "mutomic with better clause ordering")
-    (time (mu/resolve-var* {} birthday-opt {'$ movies}))
+    (time (doall (mu/query-naive {} birthday-opt {'$ movies})))
     (prn "mutomic with original order")
-    (time (mu/resolve-var* {} (:where ch6-birthday-paradox) {'$ movies}))
+    (time (doall (mu/query-naive {} (:where ch6-birthday-paradox) {'$ movies})))
     (prn "mutomic with index")
-    (time (mu/resolve-var* {} birthday-opt {'$ movies-db}))
+    (time (doall (mu/query-naive {} birthday-opt {'$ movies-db})))
     (prn "mutomic with putting the results in a set")
     (time (into #{}
                 (map (fn [env]
                        (mapv env vars))
-                     (mu/resolve-var* {} birthday-opt {'$ movies}))))))
+                     (mu/query-naive {} birthday-opt {'$ movies}))))
+    nil))
 
 (def ch6
   [[ch6-people-by-age 63 #inst "2013-08-02"]
