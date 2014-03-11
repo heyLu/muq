@@ -12,6 +12,10 @@
   (is (= (clause-matches '[?e :name "Joe"] [:joe :name "Joe"])
          '{?e :joe})))
 
+(comment
+  (clause-matches '[?e :name ?n ?tx ?added] [1 :name "Joe" 3 true])
+  (clause-matches '[?e :name ?n ?tx ?added] (mutomic.Datum. 1 :name "Joe" 0)))
+
 (let [clause1 '[?e :name "Joe"]
       clause2 '[?e :name "Fred"]
       clause3 '[?e :age 10]
@@ -42,6 +46,30 @@
   (let [friends-clauses '[[?e :likes ?o] [?o :likes ?e]]
         friends (resolve-var* {} friends-clauses {'$ fred-julia-joe})]
     (is (= (count friends) 2))))
+
+(comment
+  (resolve-var* {} '[[?e :name ?n]] {'$ fred-julia-joe})
+
+  (resolve-var* {}
+                '[(friends :julia ?jf)]
+                {'$ fred-julia-joe
+                 '% '[[(likes ?p1 ?p2)
+                       [?p1 :likes ?p2]]
+                      [(friends ?p1 ?p2)
+                       [?p1 :likes ?p2]
+                       [?p2 :likes ?p1]]]}
+                #{})
+
+  (resolve-var* {}
+                '[(knows ?a ?b)]
+                '{$ [[1 :k 2]
+                     [2 :k 3]]
+                  % [[(knows ?a ?b)
+                      [?a :k ?b]]
+                     [(knows ?a ?b)
+                      [?a :k ?p]
+                      (knows ?p ?b)]]}
+                #{}))
 
 (deftest test-query-naive
   (let [friends-with-attrs '[[?e :name ?n]
