@@ -203,15 +203,13 @@ Trying to understand datomic, mostly."
         new-state (conj state [name (replace-vars env params)])]
     (if (contains? state [name (replace-vars env params)])
       #{}
-      (reduce-until =
-                    into
-                    #{}
-                    (map (fn [rdef]
-                           (let [[_ & clauses] rdef
-                                 results (resolve-var* rule-env clauses dbs new-state)]
-                             (filter identity
-                                     (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results))))
-                         defs)))))
+      (reduce into #{}
+              (map (fn [rdef]
+                     (let [[_ & clauses] rdef
+                           results (resolve-var* rule-env clauses dbs new-state)]
+                       (filter identity
+                               (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results))))
+                   defs)))))
 
 (defn rule? [clause]
   (list? clause))
