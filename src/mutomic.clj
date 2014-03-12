@@ -26,7 +26,7 @@ Trying to understand datomic, mostly."
 (defn clause-matches [clause datom]
   (let [ms (map data-matches clause (if (instance? Datum datom) (vals datom) datom))]
     (if (every? identity ms)
-      (into {} (filter map? ms))
+      (into {} ms)
       nil)))
 
 (defn bindings-consistent? [b1 b2]
