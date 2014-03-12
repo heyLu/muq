@@ -45,6 +45,12 @@
                                                [['?p1 :name name]
                                                 ['?p1 :likes '?p2]
                                                 ['?p2 :name '?who]])]
+                   [#"Who knows someone who knows (\w+)" (fn [name]
+                                                           [['?p :name name]
+                                                            '(knows-someone ?who ?p)])]
+                   [#"Who knows (\w+)" (fn [name]
+                                         [['?p :name name]
+                                          '(knows ?who ?p)])]
                    [#"Who is older than (\d+) years" (fn [age-str]
                                                        [['?who :age '?age]
                                                         [(list '> '?age (p/parse-int age-str))]])]
@@ -55,6 +61,18 @@
                                                   ['(> ?age ?page)]])]
                    [#"Who is (\w+)" (fn [trait]
                                       [['?who :is trait]])]]
+         rules '[[(knows ?p1 ?p2)
+                  [?p1 :knows ?p2]]
+                 [(knows ?p1 ?p2)
+                  [?p1 :likes ?p2]
+                  [?p2 :likes ?p1]]
+                 [(knows-someone ?p1 ?p2)
+                  (knows ?p1 ?p2)
+                  [(not= ?p1 ?p2)]]
+                 [(knows-someone ?p1 ?p2)
+                  (knows ?p1 ?p)
+                  (knows-someone ?p ?p2)
+                  [(not= ?p1 ?p2)]]]
          [re f] (first
                  (filter (fn [[re _]]
                            (re-find re question))
@@ -62,8 +80,10 @@
      (if re
        (let [clauses (apply f (subvec (re-find re question) 1))]
          (mu/q {:find ['?who]
+                :in '[$ %]
                 :where clauses}
-               db))))))
+               db
+               rules))))))
 
 (comment
   (mq "Who likes Joe?")
