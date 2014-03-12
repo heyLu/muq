@@ -113,7 +113,8 @@ Trying to understand datomic, mostly."
         (> (compare o1 o2) 0))
    '>= (fn [o1 o2]
         (let [c (compare o1 o2)]
-           (or (> c 0) (= c 0))))})
+           (or (> c 0) (= c 0))))
+   'not= not=})
 
 (defn step-expression-clause [env clause]
   (let [[[f & args] & [pattern]] clause
