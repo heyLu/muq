@@ -9,15 +9,12 @@
         <input id="question" />
         <pre id="answer">
         </pre>
+        <textarea id="data" cols="80" rows="20">
+        </textarea>
 
         <script src="target/mutomic.js"></script>
         <script>
-          var questionEl = document.getElementById("question");
-          var answerEl = document.getElementById("answer");
-
-          questionEl.onchange = function() {
-            answerEl.textContent = cljs.core.pr_str(mutomic.natural.mq(questionEl.value));
-          }
+          mutomic.example.setup_qa("question", "answer", "data");
         </script>
     </body>
 </html>
