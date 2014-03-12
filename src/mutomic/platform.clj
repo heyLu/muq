@@ -4,7 +4,7 @@
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]))
 
-(defn starts-with [string start]
+(defn starts-with [^String string start]
   (.startsWith string start))
 
 (defn upper-case? [c]
