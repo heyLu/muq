@@ -35,32 +35,34 @@
   ;=> ["Wer" "mag" "Fred" "?"] -> [["Wer" :subject] ["mag" :predicate] ["Fred" :object]]
 )
 
-(defn ^:export mq [question]
-  (let [matchers [[#"Who likes (\w+)" (fn [name]
-                                        [['?who :likes '?p]
-                                         ['?p :name name]])]
-                  [#"Who is liked by (\w+)" (fn [name]
-                                              [['?p1 :name name]
-                                               ['?p1 :likes '?p2]
-                                               ['?p2 :name '?who]])]
-                  [#"Who is (\w+)" (fn [trait]
-                                     [['?who :is trait]])]
-                  [#"Who is older than (\d+)" (fn [age-str]
-                                                [['?who :age '?age]
-                                                 [(list '> '?age (p/parse-int age-str))]])]
-                  [#"Who is older than (\w+) years" (fn [name]
-                                                      [['?p :name name]
-                                                       ['?p :age '?page]
-                                                       ['?who :age '?age]
-                                                       ['(> ?age ?page)]])]]
-        [re f] (first
-                (filter (fn [[re _]]
-                          (re-find re question))
-                        matchers))
-        clauses (apply f (subvec (re-find re question) 1))]
-    (mu/q {:find ['?who]
-           :where clauses}
-          mu/fred-julia-joe)))
+(defn ^:export mq
+  ([question] (mq question mu/fred-julia-joe))
+  ([question db]
+   (let [matchers [[#"Who likes (\w+)" (fn [name]
+                                         [['?who :likes '?p]
+                                          ['?p :name name]])]
+                   [#"Who is liked by (\w+)" (fn [name]
+                                               [['?p1 :name name]
+                                                ['?p1 :likes '?p2]
+                                                ['?p2 :name '?who]])]
+                   [#"Who is (\w+)" (fn [trait]
+                                      [['?who :is trait]])]
+                   [#"Who is older than (\d+)" (fn [age-str]
+                                                 [['?who :age '?age]
+                                                  [(list '> '?age (p/parse-int age-str))]])]
+                   [#"Who is older than (\w+) years" (fn [name]
+                                                       [['?p :name name]
+                                                        ['?p :age '?page]
+                                                        ['?who :age '?age]
+                                                        ['(> ?age ?page)]])]]
+         [re f] (first
+                 (filter (fn [[re _]]
+                           (re-find re question))
+                         matchers))
+         clauses (apply f (subvec (re-find re question) 1))]
+     (mu/q {:find ['?who]
+            :where clauses}
+           db))))
 
 (comment
   (mq "Who likes Joe?")
