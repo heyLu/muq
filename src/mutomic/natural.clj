@@ -58,11 +58,12 @@
          [re f] (first
                  (filter (fn [[re _]]
                            (re-find re question))
-                         matchers))
-         clauses (apply f (subvec (re-find re question) 1))]
-     (mu/q {:find ['?who]
-            :where clauses}
-           db))))
+                         matchers))]
+     (if re
+       (let [clauses (apply f (subvec (re-find re question) 1))]
+         (mu/q {:find ['?who]
+                :where clauses}
+               db))))))
 
 (comment
   (mq "Who likes Joe?")
