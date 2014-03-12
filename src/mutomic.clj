@@ -199,17 +199,18 @@ Trying to understand datomic, mostly."
         defs (filter #(= (rule-name %) name) (dbs '%))
         [_ & rparams] (ffirst defs)
         {rule-env false rule->query true} (group-by #(-> % second variable?) (map vector rparams (replace-vars env params)))
-        [rule-env rule->query] (map #(into {} %) [rule-env rule->query])
-        new-state (conj state [name (replace-vars env params)])]
-    (if (contains? state [name (replace-vars env params)])
+        [rule-env rule->query] (map #(into {} %) [rule-env rule->query])]
+    (if (contains? @state [name (replace-vars env params)])
       #{}
-      (reduce into #{}
-              (map (fn [rdef]
-                     (let [[_ & clauses] rdef
-                           results (resolve-var* rule-env clauses dbs new-state)]
-                       (filter identity
-                               (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results))))
-                   defs)))))
+      (do
+        (swap! state conj [name (replace-vars env params)])
+        (reduce into #{}
+                (map (fn [rdef]
+                       (let [[_ & clauses] rdef
+                             results (resolve-var* rule-env clauses dbs state)]
+                         (filter identity
+                                 (map #(if (map? %) (merge-if-consistent env (remap-keys % rule->query))) results))))
+                     defs))))))
 
 (defn rule? [clause]
   (list? clause))
@@ -229,7 +230,7 @@ Trying to understand datomic, mostly."
     (concat clauses expr-clauses)))
 
 (defn query-naive [env clauses dbs]
-  (resolve-var* env (sort-clauses clauses) dbs #{}))
+  (resolve-var* env (sort-clauses clauses) dbs (atom #{})))
 
 (defn normalize-query [query]
   (let [default {:in '[$]}]
