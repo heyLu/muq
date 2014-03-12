@@ -21,18 +21,25 @@
                  [(mutomic.example/fancy? ?name)]]}
        mu/fred-julia-joe))
 
+(defn answer [question-el answer-el data-el]
+  (fn [ev]
+    (let [data (.-value data-el)
+          data (if (str/blank? data)
+                 mu/fred-julia-joe
+                 (edn/read-string data))
+          question (.-value question-el)
+          res (n/mq question data)]
+      (set! (.-textContent answer-el) (pr-str res)))))
+
 (defn ^:export setup-qa [question-id answer-id data-id]
   (let [question-el (js/document.getElementById question-id)
         answer-el (js/document.getElementById answer-id)
-        data-el (js/document.getElementById data-id)]
+        data-el (js/document.getElementById data-id)
+        answer-fn (answer question-el answer-el data-el)]
     (when (str/blank? (.-value data-el))
       (set! (.-value data-el) (pr-str mu/fred-julia-joe)))
-    (.addEventListener question-el "input"
+    (.addEventListener question-el "input" answer-fn)
+    (.addEventListener question-el "keyup"
                        (fn [ev]
-                         (let [data (.-value data-el)
-                               data (if (str/blank? data)
-                                      mu/fred-julia-joe
-                                      (edn/read-string data))
-                               question (.-value question-el)
-                               res (n/mq question data)]
-                           (set! (.-textContent answer-el) (pr-str res)))))))
+                         (if (= (.-keyCode ev) 13)
+                           (answer-fn ev))))))
