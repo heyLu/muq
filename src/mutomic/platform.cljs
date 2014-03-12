@@ -4,7 +4,7 @@
             [clojure.string :as string]))
 
 (defn starts-with [string start]
-  (.startsWith string start))
+  (= (.slice string 0 (.-length start)) start))
 
 (defn upper-case? [c]
   (= c (.toUpper c)))
