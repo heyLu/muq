@@ -27,7 +27,7 @@
         data-el (js/document.getElementById data-id)]
     (when (str/blank? (.-value data-el))
       (set! (.-value data-el) (pr-str mu/fred-julia-joe)))
-    (.addEventListener question-el "change"
+    (.addEventListener question-el "input"
                        (fn [ev]
                          (let [data (.-value data-el)
                                data (if (str/blank? data)
