@@ -44,11 +44,11 @@
 
 (deftest test-resolve-var*
   (let [friends-clauses '[[?e :likes ?o] [?o :likes ?e]]
-        friends (resolve-var* {} friends-clauses {'$ fred-julia-joe})]
+        friends (resolve-var* {} friends-clauses {'$ fred-julia-joe} (atom #{}))]
     (is (= (count friends) 2))))
 
 (comment
-  (resolve-var* {} '[[?e :name ?n]] {'$ fred-julia-joe})
+  (resolve-var* {} '[[?e :name ?n]] {'$ fred-julia-joe} (atom #{}))
 
   (resolve-var* {}
                 '[(friends :julia ?jf)]
@@ -58,7 +58,7 @@
                       [(friends ?p1 ?p2)
                        [?p1 :likes ?p2]
                        [?p2 :likes ?p1]]]}
-                #{})
+                (atom #{}))
 
   (resolve-var* {}
                 '[(knows ?a ?b)]
@@ -69,7 +69,7 @@
                      [(knows ?a ?b)
                       [?a :k ?p]
                       (knows ?p ?b)]]}
-                #{}))
+                (atom #{})))
 
 (deftest test-query-naive
   (let [friends-with-attrs '[[?e :name ?n]
