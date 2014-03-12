@@ -36,23 +36,23 @@
 )
 
 (defn ^:export mq [question]
-  (let [matchers [[#"Wer mag (\w+)" (fn [name]
-                                      [['?who :likes '?p]
-                                       ['?p :name name]])]
-                  [#"Wer ist (\w+)" (fn [trait]
-                                      [['?who :is trait]])]
-                  [#"Wen mag (\w+)" (fn [name]
-                                      [['?p1 :name name]
-                                       ['?p1 :likes '?p2]
-                                       ['?p2 :name '?who]])]
-                  [#"Wer ist älter als (\d+)" (fn [age-str]
+  (let [matchers [[#"Who likes (\w+)" (fn [name]
+                                        [['?who :likes '?p]
+                                         ['?p :name name]])]
+                  [#"Who is liked by (\w+)" (fn [name]
+                                              [['?p1 :name name]
+                                               ['?p1 :likes '?p2]
+                                               ['?p2 :name '?who]])]
+                  [#"Who is (\w+)" (fn [trait]
+                                     [['?who :is trait]])]
+                  [#"Who is older than (\d+)" (fn [age-str]
                                                 [['?who :age '?age]
                                                  [(list '> '?age (p/parse-int age-str))]])]
-                  [#"Wer ist älter als (\w+)" (fn [name]
-                                                [['?p :name name]
-                                                 ['?p :age '?page]
-                                                 ['?who :age '?age]
-                                                 ['(> ?age ?page)]])]]
+                  [#"Who is older than (\w+) years" (fn [name]
+                                                      [['?p :name name]
+                                                       ['?p :age '?page]
+                                                       ['?who :age '?age]
+                                                       ['(> ?age ?page)]])]]
         [re f] (first
                 (filter (fn [[re _]]
                           (re-find re question))
@@ -63,7 +63,8 @@
           mu/fred-julia-joe)))
 
 (comment
-  (mq "Wer mag Joe?")
-  (mq "Wen mag Joe?")
-  (mq "Wer ist älter als 3?")
-  (mq "Wer ist älter als Julia?"))
+  (mq "Who likes Joe?")
+  (mq "Who is liked by Joe?")
+  (mq "Who is awesome?")
+  (mq "Who is older than 3 years?")
+  (mq "Who is older than Julia?"))
