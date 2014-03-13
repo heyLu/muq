@@ -35,21 +35,6 @@ Trying to understand datomic, mostly."
               (= (b1 k) (b2 k)))
             common-keys)))
 
-(def fred-julia-joe
-  [[:fred :name "Fred"]
-   [:fred :is "awkward"]
-   [:julia :name "Julia"]
-   [:julia :is "awesome"]
-   [:julia :is "fun"]
-   [:julia :likes :joe]
-   [:fred :age 13]
-   [:julia :age 10]
-   [:joe :age 7]
-   [:joe :likes :fred]
-   [:joe :likes :julia]
-   [:joe :likes :flowers]
-   [:joe :name "Joe"]])
-
 (defn index [idx datom]
   (let [[e a v t] datom
         t 0
@@ -60,9 +45,6 @@ Trying to understand datomic, mostly."
 
 (defn index-many [idx datoms]
   (reduce index idx datoms))
-
-(def fred-julia-joe-index
-  (index-many nil fred-julia-joe))
 
 (defn datoms [idx idx-name & components]
   (get-in idx (into [] (cons idx-name components))))

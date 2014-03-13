@@ -1,6 +1,7 @@
 (ns mutomic.natural
   (:require [clojure.string :as str]
             [mutomic :as mu]
+            [mutomic.sample-data :as s]
             [mutomic.platform :as p]))
 
 (defn flatten-query [nested-query]
@@ -26,7 +27,7 @@
                            words)
         clauses (flatten-query nested-query)]
     clauses
-    (map #(get % '?who) (mu/resolve-var* {} clauses {'$ mu/fred-julia-joe} (atom #{})))))
+    (map #(get % '?who) (mu/resolve-var* {} clauses {'$ s/fred-julia-joe} (atom #{})))))
 
 (comment
   (nq "Wer ist awkward")
@@ -36,7 +37,7 @@
 )
 
 (defn ^:export mq
-  ([question] (mq question mu/fred-julia-joe))
+  ([question] (mq question s/fred-julia-joe))
   ([question db]
    (let [matchers [[#"Who likes (\w+)" (fn [name]
                                          [['?who :likes '?p]

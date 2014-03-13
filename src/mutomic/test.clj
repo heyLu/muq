@@ -1,6 +1,7 @@
 (ns mutomic.test
   (:use [clojure.test :only (deftest is)]
-        [mutomic]))
+        [mutomic]
+        [mutomic.sample-data :only (fred-julia-joe fred-julia-joe-index)]))
 
 (deftest test-data-matches
   (is (= (data-matches '?a 'b) '{?a b}))

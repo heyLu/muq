@@ -1,5 +1,6 @@
 (ns mutomic.example
   (:require [mutomic :as mu]
+            [mutomic.sample-data :as s]
             [mutomic.natural :as n]
             [clojure.string :as str]
             [cljs.reader :as edn]))
@@ -9,7 +10,7 @@
 (prn
  (mu/q '{:find [?name]
          :where [[_ :name ?name]]}
-       mu/fred-julia-joe))
+       s/fred-julia-joe))
 
 (defn ^:export fancy? [name]
   (> (count name) 4))
@@ -19,13 +20,13 @@
          :where [[?p :name ?name]
                  [?p :age ?age]
                  [(mutomic.example/fancy? ?name)]]}
-       mu/fred-julia-joe))
+       s/fred-julia-joe))
 
 (defn answer [question-el answer-el data-el]
   (fn [ev]
     (let [data (.-value data-el)
           data (if (str/blank? data)
-                 mu/fred-julia-joe
+                 s/fred-julia-joe
                  (edn/read-string data))
           question (.-value question-el)
           res (n/mq question data)]
