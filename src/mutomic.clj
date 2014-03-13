@@ -58,6 +58,14 @@ Trying to understand datomic, mostly."
                [k (-> (flatten-index vt) first :v)])
              (datoms idx :eavt eid))))
 
+(defn entity->facts
+  ([entity] (entity->facts (:db/id entity) entity))
+  ([eid entity]
+   (vec
+    (mapcat (fn [[a v]]
+              (map #(vector eid a %) (if (coll? v) v [v])))
+            entity))))
+
 (defn replace-vars [env datom]
   (mapv #(or (env %) %) datom))
 
