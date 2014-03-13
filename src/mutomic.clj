@@ -67,8 +67,6 @@ Trying to understand datomic, mostly."
 (defn datoms [idx idx-name & components]
   (get-in idx (into [] (cons idx-name components))))
 
-;(datoms fred-julia-joe-index :eavt)
-
 (defn flatten-index [idx]
   (if (instance? Datum idx) [idx] (mapcat flatten-index (vals idx))))
 
@@ -166,10 +164,6 @@ Trying to understand datomic, mostly."
     (if (map? datoms)
       (step-index env clause datoms)
       (step* env clause datoms))))
-
-(into #{} (step {} '[?e :likes ?o] {'$ fred-julia-joe}))
-
-(into #{} (step {} '[?e :likes ?o] {'$ fred-julia-joe-index}))
 
 (defn rule-name [rule-def]
   (ffirst rule-def))
