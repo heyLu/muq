@@ -188,12 +188,6 @@ Trying to understand datomic, mostly."
 
 (declare resolve-var*)
 
-; rules are like a separate query with an initial env given?
-; what does "or" mean? do we need to keep track whether one rule
-; failed earlier and then retry with the potential alternatives?
-; gets much trickier because the "rule env" is different from the
-; query env, e.g. bindings from rule env must be translated from
-; and to the query end.
 (defn resolve-rule [env rule-call dbs state]
   (let [[name & params] rule-call
         defs (filter #(= (rule-name %) name) (dbs '%))
