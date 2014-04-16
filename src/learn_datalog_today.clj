@@ -4,7 +4,7 @@
 The original tutorial is aviallable at <http://www.learndatalogtoday.org>."
   (:require [clojure.set :as set]
             [datomic.api :as d]
-            [mutomic :as mu]))
+            [muq :as mu]))
 
 (let [base-url "https://raw.github.com/jonase/learndatalogtoday/master/resources/db/"
       movie-schema (mu/expand-tx-data (mu/read-edn (str base-url "schema.edn")))
@@ -14,13 +14,13 @@ The original tutorial is aviallable at <http://www.learndatalogtoday.org>."
 
 (defn compare-q [query & args]
   (let [datomic-result (apply d/q query args)
-        mutomic-result (apply mu/q query args)]
-    (= datomic-result mutomic-result)))
+        muq-result (apply mu/q query args)]
+    (= datomic-result muq-result)))
 
 (defn diff-q [query & args]
   (let [datomic-result (apply d/q query args)
-        mutomic-result (apply mu/q query args)]
-    (set/difference datomic-result mutomic-result)))
+        muq-result (apply mu/q query args)]
+    (set/difference datomic-result muq-result)))
 
 (defn compare-chapter [queries]
   (doseq [query queries]
@@ -192,7 +192,7 @@ The original tutorial is aviallable at <http://www.learndatalogtoday.org>."
             [?p :person/born ?y]
             [(< ?y ?cy)]]})
 
-; fails because ?r is unresolved when it's used in mutomic because relations are resolved last.
+; fails because ?r is unresolved when it's used in muq because relations are resolved last.
 (def ch5-good-new-movies
   '{:find [?title]
     :in [$ ?year ?rating [[?title ?r]]]
@@ -235,7 +235,7 @@ The original tutorial is aviallable at <http://www.learndatalogtoday.org>."
   (and (= (.getDate d1) (.getDate d2))
        (= (.getMonth d1) (.getMonth d2))))
 
-; noticeable slowdown for mutomic. datomic must be doing some magic. (or simple query optimization?)
+; noticeable slowdown for muq. datomic must be doing some magic. (or simple query optimization?)
 (def ch6-birthday-paradox
   '{:find [?n1 ?n2]
     :where [[?p1 :person/name ?n1]
@@ -257,13 +257,13 @@ The original tutorial is aviallable at <http://www.learndatalogtoday.org>."
     (time (d/q {:find vars :where birthday-opt} movies))
     (prn "datomic with original order")
     (time (d/q ch6-birthday-paradox movies))
-    (prn "mutomic with better clause ordering")
+    (prn "muq with better clause ordering")
     (time (doall (mu/query-naive {} birthday-opt {'$ movies})))
-    (prn "mutomic with original order")
+    (prn "muq with original order")
     (time (doall (mu/query-naive {} (:where ch6-birthday-paradox) {'$ movies})))
-    (prn "mutomic with index")
+    (prn "muq with index")
     (time (doall (mu/query-naive {} birthday-opt {'$ movies-db})))
-    (prn "mutomic with putting the results in a set")
+    (prn "muq with putting the results in a set")
     (time (into #{}
                 (map (fn [env]
                        (mapv env vars))

@@ -5,7 +5,7 @@
 
 ## Quickstart
 
-Run `lein cljsbuild once default` and then open `mutomic.html` in your browser.
+Run `lein cljsbuild once default` and then open `muq.html` in your browser.
 
 Alternatively, have a look in the queries in `src/learn_datalog_today.clj`.
 

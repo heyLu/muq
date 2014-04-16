@@ -1,8 +1,8 @@
-(ns mutomic.natural
+(ns muq.natural
   (:require [clojure.string :as str]
-            [mutomic :as mu]
-            [mutomic.sample-data :as s]
-            [mutomic.platform :as p]))
+            [muq :as mu]
+            [muq.sample-data :as s]
+            [muq.platform :as p]))
 
 (defn flatten-query [nested-query]
   (reduce (fn [queries query]

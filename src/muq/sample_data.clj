@@ -1,5 +1,5 @@
-(ns mutomic.sample-data
-  (:require [mutomic :as mu]))
+(ns muq.sample-data
+  (:require [muq :as mu]))
 
 (def fred-julia-joe
   [[:fred :name "Fred"]

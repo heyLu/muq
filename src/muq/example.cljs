@@ -1,7 +1,7 @@
-(ns mutomic.example
-  (:require [mutomic :as mu]
-            [mutomic.sample-data :as s]
-            [mutomic.natural :as n]
+(ns muq.example
+  (:require [muq :as mu]
+            [muq.sample-data :as s]
+            [muq.natural :as n]
             [clojure.string :as str]
             [cljs.reader :as edn]))
 
@@ -19,7 +19,7 @@
  (mu/q '{:find [?name ?age]
          :where [[?p :name ?name]
                  [?p :age ?age]
-                 [(mutomic.example/fancy? ?name)]]}
+                 [(muq.example/fancy? ?name)]]}
        s/fred-julia-joe))
 
 (defn answer [question-el answer-el data-el]

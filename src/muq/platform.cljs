@@ -1,4 +1,4 @@
-(ns mutomic.platform
+(ns muq.platform
   "Host platform dependent code."
   (:require [cljs.reader :as edn]
             [clojure.string :as string]))

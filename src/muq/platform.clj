@@ -1,4 +1,4 @@
-(ns mutomic.platform
+(ns muq.platform
   "Host platform dependent code."
   (:refer-clojure :exclude [resolve])
   (:require [clojure.edn :as edn]

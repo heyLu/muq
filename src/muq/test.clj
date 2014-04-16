@@ -1,7 +1,7 @@
-(ns mutomic.test
+(ns muq.test
   (:use [clojure.test :only (deftest is)]
-        [mutomic]
-        [mutomic.sample-data :only (fred-julia-joe fred-julia-joe-index)]))
+        [muq]
+        [muq.sample-data :only (fred-julia-joe fred-julia-joe-index)]))
 
 (deftest test-data-matches
   (is (= (data-matches '?a 'b) '{?a b}))
@@ -15,7 +15,7 @@
 
 (comment
   (clause-matches '[?e :name ?n ?tx ?added] [1 :name "Joe" 3 true])
-  (clause-matches '[?e :name ?n ?tx ?added] (mutomic.Datum. 1 :name "Joe" 0)))
+  (clause-matches '[?e :name ?n ?tx ?added] (muq.Datum. 1 :name "Joe" 0)))
 
 (let [clause1 '[?e :name "Joe"]
       clause2 '[?e :name "Fred"]

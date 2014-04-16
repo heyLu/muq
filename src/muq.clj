@@ -1,7 +1,7 @@
-(ns mutomic
+(ns muq
   "A µcroscopic in-memory time-aware functional database."
   (:require [clojure.set :as set]
-            [mutomic.platform :as p]))
+            [muq.platform :as p]))
 
 (defrecord Datum [e a v t])
 

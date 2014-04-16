@@ -1,6 +1,6 @@
-(ns mutomic.benchmark
-  (:require [mutomic :as mu]
-            [mutomic.platform :as p]))
+(ns muq.benchmark
+  (:require [muq :as mu]
+            [muq.platform :as p]))
 
 (defn random-name []
   (let [alphabet "abcdefghijklmnopqrstuvwxyz"

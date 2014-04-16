@@ -1,4 +1,4 @@
-(ns mutomic.io
+(ns muq.io
   (:require [clojure.data.fressian :as fress]
             [clojure.java.io :as io]))
 
