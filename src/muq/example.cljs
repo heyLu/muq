@@ -38,7 +38,7 @@
         data-el (js/document.getElementById data-id)
         answer-fn (answer question-el answer-el data-el)]
     (when (str/blank? (.-value data-el))
-      (set! (.-value data-el) (pr-str mu/fred-julia-joe)))
+      (set! (.-value data-el) (pr-str s/fred-julia-joe)))
     (.addEventListener question-el "input" answer-fn)
     (.addEventListener question-el "keyup"
                        (fn [ev]
