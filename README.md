@@ -1,6 +1,6 @@
-# µtomic
+# µq
 
-`µtomic` is an in-memory soon-to-be temporal database inspired by
+`µq` is an in-memory soon-to-be temporal database inspired by
 [Datomic][].
 
 ## Quickstart
