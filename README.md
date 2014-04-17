@@ -24,6 +24,7 @@ Alternatively, have a look in the queries in `src/learn_datalog_today.clj`.
     have a tiny transactor-like thing, allow querying for time)
 * a comprehensive set of queries
 * think about a better index
+* on-disk storage, preferably in a key-value store (e.g. `localStorage`)
 * support the schema
 * ...
 
