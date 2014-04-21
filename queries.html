@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Datalog in a Browser</title>
+		<meta charset="utf-8" />
+	</head>
+
+	<body>
+		<ul>
+			<li>an interface for <code>muq/q</code></li>
+			<li>with support for rules</li>
+			<li>storing the data in <code>localStorage</code> (and
+			restoring from there on reload)</li>
+		</ul>
+
+        <!--
+        - give a key for the backing storage
+        - store new text in localStorage
+        - restore on reload
+        - store on submit
+        - (possibly also store periodically (if changed) or on unfocus)
+        -> [user input, value from store] -> store (if valid?) -> repeat
+
+        - data from localStorage or directly (a ref?)
+        - query current data on submit
+        - (maybe recompute on (valid) data change?)
+        - display answer (or an error if one occurred)
+        -->
+
+        <textarea id="query" cols="40" rows="10"></textarea>
+        <pre id="answer">
+        </pre>
+        <textarea id="data" cols="80" rows="20"></textarea>
+
+        <script src="target/muq.js"></script>
+        <script>
+            muq.example.setup_query("query", "answer", "data");
+        </script>
+	</body>
+</html>
