@@ -2,7 +2,27 @@
 
 ## Datomic
 
-* [Datomic](http://datomic.com), [documentation](http://docs.datomic.com)
+* [website](http://datomic.com) & [documentation](http://docs.datomic.com)
+* created by Rich Hickey, the inventor of Clojure, and other people at Metadata Partners,
+    [Relevance](http://thinkrelevance) and now [Cognitect](http://cognitect.com);
+    including Stuart Halloway, Micheal Fogus and probably a lot more people
+* [Day of Datomic](https://github.com/Datomic/day-of-datomic), source code & tutorial
+    by the people who created it
+* [Learn Datalog Today!](http://www.learndatalogtoday.org/), teaching the dialect of
+    Datalog that is the query language of Datomic
+* talks & videos
+    - [The Design of Datomic](http://www.infoq.com/presentations/The-Design-of-Datomic)
+    - in general everything by Rich Hickey, some are on [InfoQ](http://www.infoq.com/author/Rich-Hickey),
+        I recommend [The Value of Values](http://www.infoq.com/presentations/Value-Values)
+        and an [interview with him](https://web.archive.org/web/20111224165834/http://www.codequarterly.com/2011/rich-hickey)
+        to understand the thinking behind Clojure & Datomic
+* random:
+    - it's immutable
+    - the db is a value in your program
+    - you can query the history of everything
+    - you can query multiple dbs
+    - there is a schema for attributes
+    - but everything else is up to you (e.g. which entities should have which attributes)
 
 ## Purely functional data structures
 
