@@ -11,12 +11,15 @@ Alternatively, have a look in the queries in `src/learn_datalog_today.clj`.
 
 ## Why?
 
-* I just had to. And starting was both challenging and possible. How could I not?
-* Runs in ClojureScript, too.
-
-    I want to use it in places where having a JVM is too heavy.
-
-    Also, having this thing run in the browser is just plain cool.
+* by accident: it was surprisingly easy/straightforward to write a query
+    engine with features similar to datomic (making it fast and/or
+    implementing immutable index/database trees proves to be much harder)
+* curiosity: to discover how datomic works
+* different use cases: wanted to use datomic on the client
+* future ideas:
+    - no schema
+    - embeddable (similar to sqlite, one-file db, probably not in clojure then)
+* not relevant anymore: survive laptop restarts (fixed by datomic 0.9.4899)
 
 ## Next up
 
